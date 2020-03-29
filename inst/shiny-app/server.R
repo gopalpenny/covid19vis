@@ -11,6 +11,9 @@ library(shiny)
 library(leaflet)
 library(covid19vis)
 library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(plotly)
 
 # if (!interactive()) {
 #   dir <- "./"
@@ -25,44 +28,107 @@ shinyServer(function(input, output) {
 
     covid_data <- readr::read_csv(file.path(dir,"covid-19-data/us-states.csv")) %>%
       dplyr::left_join(us_states %>% dplyr::select(lat=latitude,lon=longitude,state=name),by="state") %>%
-      na.omit()
+      na.omit() %>%
+      group_by(state) %>% arrange(state,date) %>%
+      mutate(cum_cases=cumsum(cases),
+             cum_deaths=cumsum(deaths),
+             cases_change=ifelse(cum_cases>cases,cases/(cum_cases-cases),0),
+             deaths_change=ifelse(cum_deaths>deaths,deaths/(cum_deaths-deaths),0),
+             cum_cases_100_lgl=cum_cases>=100,
+             cum_deaths_25_lgl=cum_deaths>=25,
+             days30=if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
+      group_by(state,cum_cases_100_lgl) %>%
+      mutate(cases100days=ifelse(cum_cases_100_lgl,row_number()-1,NA)) %>%
+      group_by(state,cum_deaths_25_lgl) %>%
+      mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA))
     covid_totals <- covid_data %>%
+      arrange(state,date) %>%
       dplyr::group_by(state,lat,lon) %>%
-      dplyr::summarize(cases=sum(cases),
-                       deaths=sum(deaths)) %>%
+      dplyr::summarize(cases=last(cum_cases),
+                       deaths=last(cum_deaths),
+                       cases_change=last(cases_change),
+                       deaths_change=last(deaths_change)) %>%
       group_by() %>%
+      # cases
       dplyr::arrange(desc(cases)) %>%
-      dplyr::mutate(rank_cases=dplyr::row_number()) %>%
+      dplyr::mutate(rank_cases=dplyr::row_number(),
+                    rank_cases_state=factor(paste0(rank_cases,". ",state),levels=paste0(rank_cases,". ",state))) %>%
+      # deaths
       dplyr::arrange(desc(deaths)) %>%
-      dplyr::mutate(rank_deaths=dplyr::row_number())
+      dplyr::mutate(rank_deaths=dplyr::row_number(),
+                    rank_deaths_state=factor(paste0(rank_deaths,". ",state),levels=paste0(rank_deaths,". ",state))) %>%
+      # change in cases
+      dplyr::arrange(desc(cases_change)) %>%
+      dplyr::mutate(rank_cases_change=dplyr::row_number(),
+                    rank_cases_change_state=factor(paste0(rank_cases_change,". ",state),levels=paste0(rank_cases_change,". ",state))) %>%
+      # change in deaths
+      dplyr::arrange(desc(deaths_change)) %>%
+      dplyr::mutate(rank_deaths_change=dplyr::row_number(),
+                    rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",state),levels=paste0(rank_deaths_change,". ",state)))
 
     output$usmap <- renderLeaflet({
       leaflet() %>%
-        addTiles(options = providerTileOptions(noWrap = TRUE), group="Map") %>%
+        addProviderTiles(providers$CartoDB.Positron) %>%
         leafem::addMouseCoordinates() %>%
         # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
         addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
         # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
         #                  options = layersControlOptions(collapsed = FALSE)) %>%
-        leaflet::addCircles(~lon,~lat,~cases,data=covid_totals) %>%
-        setView(lng = -97.7129, lat = 37.0902, zoom=4)
+        leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
+        setView(lng = -97.7129, lat = 37.0902, zoom=3)
     })
 
-    observe({
+    output$plot <- renderPlotly({
+      y_axis_name <- case_when(
+        input$yaxis == "Cases (absolute)" ~ "cases",
+        input$yaxis == "Deaths (absolute)" ~ "deaths",
+        input$yaxis == "Cases (% change)" ~ "cases_change",
+        input$yaxis == "Deaths (% change)" ~ "deaths_change"
+      )
+      rank_name <- case_when(
+        input$rankname == "Cases (absolute)" ~ "rank_cases_state",
+        input$rankname == "Deaths (absolute)" ~ "rank_deaths_state",
+        input$rankname == "Cases (% change)" ~ "rank_cases_change_state",
+        input$rankname == "Deaths (% change)" ~ "rank_deaths_change_state"
+      )
+      x_axis_name <- case_when(
+        input$xaxis == "Last 30 days" ~ "days30",
+        input$xaxis == "Days since 100th case" ~ "cases100days",
+        input$xaxis == "Days since 25th death" ~ "deaths25days"
+      )
+      var_name <- "state"
+      covid_totals
+
+
       us_bounds <- input$usmap_bounds
-      us_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
-      print(input$usmap_bounds)
+      # us_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
+      # print(input$usmap_bounds)
+
+      # pal <- colorNumeric(
+      #   palette = "Blues",
+      #   domain = countries$gdp_md_est)
 
       covid_top <- covid_totals %>%
+        rename(rank = !!rank_name) %>%
         dplyr::filter(lat>us_bounds$south,lat<us_bounds$north,
                       lon>us_bounds$west,lon<us_bounds$east) %>%
-        dplyr::arrange(desc(cases)) %>%
-        slice(1:4) #input$ngroup
+        dplyr::arrange(rank) %>%
+        dplyr::slice(1:input$ngroup)
       covid_map <- covid_data %>%
-        dplyr::filter(state %in% covid_top$state)
+        rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
+        dplyr::filter(state %in% covid_top$state, !is.na(yvar), !is.na(xvar)) %>%
+        dplyr::select(xvar,yvar,state) %>%
+        left_join(covid_top %>% select(state,rank),by="state")
 
-      plot <- ggplot(covid_map) %>%
 
+      plot <- ggplot(covid_map,aes(xvar,yvar,color=rank)) + geom_line() + geom_point() +
+        labs(y=input$yaxis,x=input$xaxis) +
+        theme_bw() %+replace% theme(legend.title = element_blank())
+
+      if (input$yscale == "Log 10") {
+        plot <- plot + scale_y_log10()
+      }
+      plotly::ggplotly(plot)
     })
 
 })
