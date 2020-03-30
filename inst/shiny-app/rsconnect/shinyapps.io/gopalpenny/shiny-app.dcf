@@ -1,0 +1,13 @@
+name: shiny-app
+title: shiny-app
+username:
+account: gopalpenny
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2018033
+bundleId: 2941724
+url: https://gopalpenny.shinyapps.io/shiny-app/
+when: 1585531981.62734
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: covid-19-data/.git|covid-19-data/LICENSE|covid-19-data/README.md|covid-19-data/us-counties.csv|covid-19-data/us-states.csv
