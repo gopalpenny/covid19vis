@@ -112,16 +112,16 @@ shinyServer(function(input, output) {
       covid_table <- covid_totals %>%
         mutate(`+C%`=round(cases_change*100,1),
                `+D%`=round(deaths_change*100,1)) %>%
-        select(State=abbrev,
+        select(` `=abbrev,
                Cases=cases,
                `+C`=cases_daily,
                `+C%`,
-               Deaths=deaths,
+               D=deaths,
                `+D`=deaths_daily,
                `+D%`) %>%
         arrange(desc(Cases))
       color_breaks <- covid_table %>%
-        summarize_at(vars(Cases,`+C`,Deaths,`+D`),
+        summarize_at(vars(Cases,`+C`,D,`+D`),
                      function(x) list(exp(seq(log(max(c(min(x,na.rm=T)-0.1,0.1))),log(max(x,na.rm=T)+0.5),length.out=19))))
       color_breaks <- color_breaks %>% bind_cols(
         covid_table %>%
@@ -138,11 +138,11 @@ shinyServer(function(input, output) {
                                    autoWidth = TRUE#,
                     )
       ) %>%
-        formatRound(c("Cases","+C","Deaths","+D"),digits = 0) %>%
+        formatRound(c("Cases","+C","D","+D"),digits = 0) %>%
         formatStyle("Cases",background = styleInterval(color_breaks$Cases[[1]],colors)) %>%
         formatStyle("+C",background = styleInterval(color_breaks$`+C`[[1]],colors)) %>%
         formatStyle("+C%",background = styleInterval(color_breaks$`+C%`[[1]],colors)) %>%
-        formatStyle("Deaths",background = styleInterval(color_breaks$Deaths[[1]],colors)) %>%
+        formatStyle("D",background = styleInterval(color_breaks$D[[1]],colors)) %>%
         formatStyle("+D",background = styleInterval(color_breaks$`+D`[[1]],colors)) %>%
         formatStyle("+D%",background = styleInterval(color_breaks$`+D%`[[1]],colors))
     })
