@@ -57,6 +57,7 @@ shinyServer(function(input, output) {
                        deaths_inc=last(deaths_daily),
                        cases_change=last(cases_change),
                        deaths_change=last(deaths_change)) %>%
+      mutate(summary=paste0(abbrev," +",format(cases_inc,big.mark = ",")," (+",round(cases_change*100),"%)")) %>%
       group_by() %>%
       # cases
       dplyr::arrange(desc(cases)) %>%
@@ -81,6 +82,7 @@ shinyServer(function(input, output) {
       "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
       states$name, states$cases, states$cases_inc, states$deaths, states$deaths_inc
     ) %>% lapply(htmltools::HTML)
+
 
     output$usmap <- renderLeaflet({
       leaflet() %>%
