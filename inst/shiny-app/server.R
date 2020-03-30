@@ -84,6 +84,25 @@ shinyServer(function(input, output) {
       "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
       states$name, states$cases, states$cases_daily, states$deaths, states$deaths_daily
     ) %>% lapply(htmltools::HTML)
+    covid_us_summary <- covid_totals %>%
+      select(cases,deaths,cases_daily,deaths_daily) %>%
+      group_by() %>%
+      summarize_all(sum) %>%
+      mutate(cases_change=cases_daily/(cases-cases_daily)*100,
+             deaths_change=deaths_daily/(deaths-deaths_daily)*100)
+
+    output$us_cases_summary <- renderText({
+      text <- with(covid_us_summary,
+           paste0("<strong>Total cases</strong><br/>",format(cases,big.mark = ",")," (+",
+                  format(cases_daily,big.mark = ","),", ",format(cases_change,big.mark = ",",digits = 3),"%)"))
+      HTML(text)
+    })
+    output$us_deaths_summary <- renderText({
+      text <- with(covid_us_summary,
+                   paste0("<strong>Total deaths</strong><br/>",format(deaths,big.mark = ",")," (+",
+                          format(deaths_daily,big.mark = ","),", ",format(deaths_change,big.mark = ",",digits = 3),"%)"))
+      HTML(text)
+    })
 
 
     output$usmap <- renderLeaflet({
@@ -109,7 +128,7 @@ shinyServer(function(input, output) {
     })
 
     output$table <- renderDT({
-      covid_table <- covid_totals %>%
+      covid_table_states <- covid_totals %>%
         mutate(`+C%`=round(cases_change*100,1),
                `+D%`=round(deaths_change*100,1)) %>%
         select(` `=abbrev,
@@ -119,13 +138,20 @@ shinyServer(function(input, output) {
                D=deaths,
                `+D`=deaths_daily) %>%
         arrange(desc(Cases))
-      color_breaks <- covid_table %>%
+      color_breaks <- covid_table_states %>%
         summarize_at(vars(Cases,`+C`,D,`+D`),
                      function(x) list(exp(seq(log(max(c(min(x,na.rm=T)-0.1,0.1))),log(max(x,na.rm=T)+0.5),length.out=19))))
       color_breaks <- color_breaks %>% bind_cols(
-        covid_table %>%
+        covid_table_states %>%
           summarize_at(vars(contains("%")),function(x) list(seq(min(x)-0.1,max(x)+0.5,length.out=19)))
       )
+
+      # US summary in same format
+      # covid_us_summary <- covid_table_states %>% mutate(` `="US") %>%
+      #   group_by(` `) %>% summarize_if(is.numeric,sum) %>%
+      #   mutate(`+C%`=round(`+C`/(Cases-`+C`) * 100),1)
+
+      covid_table <- covid_table_states
       colors <- colorspace::heat_hcl(n=20,c=c(50,100),l=c(100,60),h=c(60,10))
       # colorspace::swatchplot(colors)
       DT::datatable(covid_table,rownames=F,

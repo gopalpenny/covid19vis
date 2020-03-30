@@ -17,7 +17,17 @@ library(DT)
 shinyUI(fluidPage(
 
     # Application title
-    titlePanel("COVID19: United States"),
+    column(12,align='center',titlePanel("COVID19: United States")),
+
+    fluidRow(
+        column(6,align='center',
+               htmlOutput("us_cases_summary")
+        ),
+        column(6,align='center',
+               htmlOutput("us_deaths_summary")
+        )
+    ),
+    hr(),
 
     fluidRow(
         column(6,
@@ -32,7 +42,7 @@ shinyUI(fluidPage(
 
     hr(),
     fluidRow(
-        column(4,h4("Timeseries plots (data filtered by map)"),offset = 4)
+        column(8,h4("Timeseries plots (data filtered by map)"),offset = 4)
     ),
 
 
