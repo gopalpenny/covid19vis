@@ -14,6 +14,7 @@ library(dplyr)
 library(magrittr)
 library(ggplot2)
 library(plotly)
+library(sf)
 
 # if (!interactive()) {
 #   dir <- "./"
@@ -71,8 +72,8 @@ shinyServer(function(input, output) {
       dplyr::mutate(rank_deaths_change=dplyr::row_number(),
                     rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",state),levels=paste0(rank_deaths_change,". ",state)))
 
-    states <- USAboundaries::us_states() %>% rename(state=state_name,fips=statefp) %>%
-      left_join(covid_totals,by="fips")
+    states <- USAboundaries::us_states() %>% dplyr::rename(fips=statefp) %>%
+      dplyr::left_join(covid_totals,by="fips")
     states_labels <- sprintf(
       "<strong>%s</strong><br/>%g cases<br/>%g deaths",
       states$name, states$cases, states$deaths
