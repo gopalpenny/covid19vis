@@ -89,7 +89,7 @@ shinyServer(function(input, output) {
     output$usmap <- renderLeaflet({
       leaflet() %>%
         addProviderTiles(providers$CartoDB.Positron) %>%
-        leafem::addMouseCoordinates() %>%
+        # leafem::addMouseCoordinates() %>%
         # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
         addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
         addPolygons(data=states,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
@@ -117,8 +117,7 @@ shinyServer(function(input, output) {
                `+C`=cases_daily,
                `+C%`,
                D=deaths,
-               `+D`=deaths_daily,
-               `+D%`) %>%
+               `+D`=deaths_daily) %>%
         arrange(desc(Cases))
       color_breaks <- covid_table %>%
         summarize_at(vars(Cases,`+C`,D,`+D`),
@@ -135,7 +134,10 @@ shinyServer(function(input, output) {
                                    lengthChange=FALSE,
                                    pageLength = 10,
                                    language.thousands=",",
-                                   autoWidth = TRUE#,
+                                   pagingType="simple",
+                                   # initComplete = JS("function(settings, json) {$(this.api().table().header()).css({'font-size' : '10px'});}"),
+                                   autoWidth = TRUE
+                                   # columnDefs = list(list(width = '80%', targets = c(2,6)))#,
                     )
       ) %>%
         formatRound(c("Cases","+C","D","+D"),digits = 0) %>%
@@ -143,8 +145,9 @@ shinyServer(function(input, output) {
         formatStyle("+C",background = styleInterval(color_breaks$`+C`[[1]],colors)) %>%
         formatStyle("+C%",background = styleInterval(color_breaks$`+C%`[[1]],colors)) %>%
         formatStyle("D",background = styleInterval(color_breaks$D[[1]],colors)) %>%
-        formatStyle("+D",background = styleInterval(color_breaks$`+D`[[1]],colors)) %>%
-        formatStyle("+D%",background = styleInterval(color_breaks$`+D%`[[1]],colors))
+        formatStyle("+D",background = styleInterval(color_breaks$`+D`[[1]],colors)) #%>%
+        # formatStyle("+D%",background = styleInterval(color_breaks$`+D%`[[1]],colors)) %>%
+        # formatStyle(columns = rep(T,7), fontSize = '10px')
     })
 
     output$plot <- renderPlotly({
