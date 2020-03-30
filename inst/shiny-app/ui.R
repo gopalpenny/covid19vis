@@ -32,7 +32,7 @@ shinyUI(fluidPage(
 
     hr(),
     fluidRow(
-        column(4,h4("Timeseries and plots"),offset = 4)
+        column(4,h4("Timeseries and plots (filtered by map bounds)"),offset = 4)
     ),
 
 
