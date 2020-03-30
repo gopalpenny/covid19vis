@@ -22,30 +22,35 @@ library(plotly)
 # }
 dir <- "./"
 
+bins <- 10^c(1:5)
+# class(states)
+pal <- colorBin("YlOrRd", domain = c(0,1e6), bins = bins)
+
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
-    covid_data <- readr::read_csv(file.path(dir,"covid-19-data/us-states.csv")) %>%
-      dplyr::left_join(us_states %>% dplyr::select(lat=latitude,lon=longitude,state=name),by="state") %>%
+    covid_data <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
+      left_join(us_states %>% dplyr::select(lat=latitude,lon=longitude,state=name),by="state") %>%
       na.omit() %>%
       group_by(state) %>% arrange(state,date) %>%
-      mutate(cum_cases=cumsum(cases),
-             cum_deaths=cumsum(deaths),
-             cases_change=ifelse(cum_cases>cases,cases/(cum_cases-cases),0),
-             deaths_change=ifelse(cum_deaths>deaths,deaths/(cum_deaths-deaths),0),
-             cum_cases_100_lgl=cum_cases>=100,
-             cum_deaths_25_lgl=cum_deaths>=25,
+      mutate(cases_daily=cases-lag(cases),
+             deaths_daily=deaths-lag(deaths),
+             cases_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily),0),
+             deaths_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily),0),
+             cum_cases_100_lgl=cases>=100,
+             cum_deaths_25_lgl=deaths>=25,
              days30=if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
       group_by(state,cum_cases_100_lgl) %>%
       mutate(cases100days=ifelse(cum_cases_100_lgl,row_number()-1,NA)) %>%
       group_by(state,cum_deaths_25_lgl) %>%
-      mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA))
+      mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA)) %>%
+      group_by()
     covid_totals <- covid_data %>%
       arrange(state,date) %>%
-      dplyr::group_by(state,lat,lon) %>%
-      dplyr::summarize(cases=last(cum_cases),
-                       deaths=last(cum_deaths),
+      dplyr::group_by(state,lat,lon,fips) %>%
+      dplyr::summarize(cases=last(cases),
+                       deaths=last(deaths),
                        cases_change=last(cases_change),
                        deaths_change=last(deaths_change)) %>%
       group_by() %>%
@@ -66,15 +71,32 @@ shinyServer(function(input, output) {
       dplyr::mutate(rank_deaths_change=dplyr::row_number(),
                     rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",state),levels=paste0(rank_deaths_change,". ",state)))
 
+    states <- USAboundaries::us_states() %>% rename(state=state_name,fips=statefp) %>%
+      left_join(covid_totals,by="fips")
+    states_labels <- sprintf(
+      "<strong>%s</strong><br/>%g cases<br/>%g deaths",
+      states$name, states$cases, states$deaths
+    ) %>% lapply(htmltools::HTML)
+
     output$usmap <- renderLeaflet({
       leaflet() %>%
         addProviderTiles(providers$CartoDB.Positron) %>%
         leafem::addMouseCoordinates() %>%
         # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
         addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
+        addPolygons(data=states,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
+                    fillColor = ~pal(cases),color=~pal(cases),
+                    # highlightOptions = highlightOptions(
+                    #   weight = 5,
+                    #   color = "#666",
+                    #   dashArray = "",
+                    #   fillOpacity = 0.7,
+                    #   bringToFront = TRUE),
+                    label=states_labels) %>%
         # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
         #                  options = layersControlOptions(collapsed = FALSE)) %>%
-        leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
+        # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
+        addLegend(position = "bottomright",pal=pal,data=states,values = ~cases) %>%
         setView(lng = -97.7129, lat = 37.0902, zoom=3)
     })
 
