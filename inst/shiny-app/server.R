@@ -48,35 +48,38 @@ shinyServer(function(input, output) {
       mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA)) %>%
       group_by()
     covid_totals <- covid_data %>%
+      left_join(covid19vis::us_states %>% dplyr::select(abbrev=state,state=name),by="state") %>%
       arrange(state,date) %>%
-      dplyr::group_by(state,lat,lon,fips) %>%
+      dplyr::group_by(state,abbrev,lat,lon,fips) %>%
       dplyr::summarize(cases=last(cases),
                        deaths=last(deaths),
+                       cases_inc=last(cases_daily),
+                       deaths_inc=last(deaths_daily),
                        cases_change=last(cases_change),
                        deaths_change=last(deaths_change)) %>%
       group_by() %>%
       # cases
       dplyr::arrange(desc(cases)) %>%
       dplyr::mutate(rank_cases=dplyr::row_number(),
-                    rank_cases_state=factor(paste0(rank_cases,". ",state),levels=paste0(rank_cases,". ",state))) %>%
+                    rank_cases_state=factor(paste0(rank_cases,". ",abbrev),levels=paste0(rank_cases,". ",abbrev))) %>%
       # deaths
       dplyr::arrange(desc(deaths)) %>%
       dplyr::mutate(rank_deaths=dplyr::row_number(),
-                    rank_deaths_state=factor(paste0(rank_deaths,". ",state),levels=paste0(rank_deaths,". ",state))) %>%
+                    rank_deaths_state=factor(paste0(rank_deaths,". ",abbrev),levels=paste0(rank_deaths,". ",abbrev))) %>%
       # change in cases
       dplyr::arrange(desc(cases_change)) %>%
       dplyr::mutate(rank_cases_change=dplyr::row_number(),
-                    rank_cases_change_state=factor(paste0(rank_cases_change,". ",state),levels=paste0(rank_cases_change,". ",state))) %>%
+                    rank_cases_change_state=factor(paste0(rank_cases_change,". ",abbrev),levels=paste0(rank_cases_change,". ",abbrev))) %>%
       # change in deaths
       dplyr::arrange(desc(deaths_change)) %>%
       dplyr::mutate(rank_deaths_change=dplyr::row_number(),
-                    rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",state),levels=paste0(rank_deaths_change,". ",state)))
+                    rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",abbrev),levels=paste0(rank_deaths_change,". ",abbrev)))
 
     states <- USAboundaries::us_states() %>% dplyr::rename(fips=statefp) %>%
       dplyr::left_join(covid_totals,by="fips")
     states_labels <- sprintf(
-      "<strong>%s</strong><br/>%g cases<br/>%g deaths",
-      states$name, states$cases, states$deaths
+      "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
+      states$name, states$cases, states$cases_inc, states$deaths, states$deaths_inc
     ) %>% lapply(htmltools::HTML)
 
     output$usmap <- renderLeaflet({
@@ -120,7 +123,7 @@ shinyServer(function(input, output) {
         input$xaxis == "Days since 25th death" ~ "deaths25days"
       )
       var_name <- "state"
-      covid_totals
+      # covid_totals
 
 
       us_bounds <- input$usmap_bounds
