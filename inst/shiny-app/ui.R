@@ -24,7 +24,7 @@ shinyUI(fluidPage(
     fluidRow(
         column(3,offset=0,align='center',
                HTML("<br/>"),
-               selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "us")
+               selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "world")
         ),
         column(4,offset=1,align='center',
                HTML("<br/>"),

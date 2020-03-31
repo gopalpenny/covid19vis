@@ -24,10 +24,6 @@ library(DT)
 # }
 dir <- "./"
 
-bins <- 10^c(1:5)
-# class(states)
-pal <- colorBin("YlOrRd", domain = c(0,1e6), bins = bins)
-
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
@@ -41,11 +37,24 @@ shinyServer(function(input, output) {
   # covid_data <- covid_data_us
   covid_totals_us <- prep_covid_totals(covid_data_us)
 
+  map_data_us <- USAboundaries::us_states() %>% dplyr::rename(id=statefp) %>% dplyr::select(-name) %>%
+    dplyr::left_join(covid_totals_us,by=c("id"))
+
   ### WORLD DATA
   covid_data_world_prep <- prep_covid_raw_world()
   covid_data_world <- prep_covid_data(covid_data_world_prep)
   # covid_data <- covid_data_us
   covid_totals_world <- prep_covid_totals(covid_data_world) %>% dplyr::arrange(name)
+
+  map_data_world <- rnaturalearth::ne_countries(scale="small",returnclass = "sf") %>%
+    select(id=adm0_a3) %>%
+    left_join(covid_totals_world,by="id")
+
+  ## additional data
+  usbins <- 10^c(1:5)
+  uspal <- colorBin("YlOrRd", domain = c(0,1e6), bins = usbins)
+  worldbins <- c(0,10^c(1:6))
+  worldpal <- colorBin("YlOrRd", domain = c(0,1e6), bins = worldbins)
 
   # Reactive data objects -- change depending on maintab
   covid_data <- reactive({
@@ -77,10 +86,9 @@ shinyServer(function(input, output) {
 
   map_data <- reactive({
     if (input$maintab=="us") {
-      map_data <- USAboundaries::us_states() %>% dplyr::rename(id=statefp) %>% dplyr::select(-name) %>%
-        dplyr::left_join(covid_totals_us,by=c("id"))
+      map_data <- map_data_us
     } else if (input$maintab=="world") {
-      # covid_totals <- covid_totals_world
+      map_data <- map_data_world
     }
     map_data
   })
@@ -92,6 +100,15 @@ shinyServer(function(input, output) {
       map_data_df$name, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
     ) %>% lapply(htmltools::HTML)
     map_labels
+  })
+
+  mappal <- reactive({
+    if (input$maintab=="us") {
+      mappal <- uspal
+    } else if (input$maintab=="world") {
+      mappal <- worldpal
+    }
+    mappal
   })
 
   output$us_cases_summary <- renderText({
@@ -107,15 +124,40 @@ shinyServer(function(input, output) {
     HTML(text)
   })
 
+  map_info <- reactiveValues(
+    usbounds = list(north = 61.8, east = -60.3, south = 0.879, west = -135),
+    worldbounds = NULL
+    # bounds = NULL
+  )
 
-  output$usmap <- renderLeaflet({
-    leaflet() %>%
-      addProviderTiles(providers$CartoDB.Positron) %>%
-      # leafem::addMouseCoordinates() %>%
-      # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
-      addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
+  # when bounds change, update bounds for US or World
+  observeEvent(input$usmap_bounds,{
+    if (input$maintab=="us") {
+      map_info$usbounds <- input$usmap_bounds
+      # map_info$bounds <- input$usmap_bounds
+    } else if (input$maintab=="world") {
+      map_info$worldbounds <- input$usmap_bounds
+      map_info$bounds <- input$usmap_bounds
+    }
+  })
+
+  # current bound are always stored in a reactive contect
+  mapbounds <- reactive({
+    if (input$maintab=="us") {
+      mapbounds <- map_info$usbounds
+    } else if (input$maintab=="world") {
+      mapbounds <- map_info$worldbounds
+    }
+  })
+
+  observeEvent(input$maintab,{
+    pal <- mappal()
+    map_bounds <- mapbounds()
+
+    leafletProxy("usmap") %>%
+      clearGroup("poly") %>% clearControls()  %>%
       addPolygons(data=map_data(),stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
-                  fillColor = ~pal(cases),color=~pal(cases),
+                  fillColor = ~pal(cases),color=~pal(cases),group="poly",
                   # highlightOptions = highlightOptions(
                   #   weight = 5,
                   #   color = "#666",
@@ -127,6 +169,17 @@ shinyServer(function(input, output) {
       #                  options = layersControlOptions(collapsed = FALSE)) %>%
       # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
       addLegend(position = "bottomright",pal=pal,data=map_data(),values = ~cases) %>%
+      fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north)
+
+  })
+
+
+  output$usmap <- renderLeaflet({
+    leaflet() %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
+      # leafem::addMouseCoordinates() %>%
+      # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
+      addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
       setView(lng = -97.7129, lat = 37.0902, zoom=3)
   })
 
@@ -145,11 +198,10 @@ shinyServer(function(input, output) {
 
     foo <- "bar"
 
-    if (input$maintab == "us") {
-      map_bounds <- input$usmap_bounds
-    } else if (input$maintab == "world") {
-      map_bounds <- input$worldmap_bounds
-    }
+    print(str(input$usmap_bounds))
+
+    map_bounds <- map_info$worldbounds
+
     print('covid_data')
     print(covid_data())
     if (!is.null(covid_data()) & !is.null(covid_totals())) {
