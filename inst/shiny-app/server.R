@@ -38,8 +38,8 @@ shinyServer(function(input, output) {
       group_by(state) %>% arrange(state,date) %>%
       mutate(cases_daily=cases-lag(cases),
              deaths_daily=deaths-lag(deaths),
-             cases_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily),0),
-             deaths_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily),0),
+             cases_pct_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily)*100,0),
+             deaths_pct_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily)*100,0),
              cum_cases_100_lgl=cases>=100,
              cum_deaths_25_lgl=deaths>=25,
              days30=if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
@@ -56,10 +56,10 @@ shinyServer(function(input, output) {
                        deaths=last(deaths),
                        cases_daily=last(cases_daily),
                        deaths_daily=last(deaths_daily),
-                       cases_change=last(cases_change),
-                       deaths_change=last(deaths_change),
+                       cases_pct_change=last(cases_pct_change),
+                       deaths_pct_change=last(deaths_pct_change),
                        last_date=last(date)) %>%
-      mutate(summary=paste0(abbrev," +",format(cases_daily,big.mark = ",")," (+",round(cases_change*100),"%)")) %>%
+      mutate(summary=paste0(abbrev," +",format(cases_daily,big.mark = ",")," (+",round(cases_pct_change),"%)")) %>%
       group_by() %>%
       # cases
       dplyr::arrange(desc(cases)) %>%
@@ -70,11 +70,11 @@ shinyServer(function(input, output) {
       dplyr::mutate(rank_deaths=dplyr::row_number(),
                     rank_deaths_state=factor(paste0(rank_deaths,". ",abbrev),levels=paste0(rank_deaths,". ",abbrev))) %>%
       # change in cases
-      dplyr::arrange(desc(cases_change)) %>%
+      dplyr::arrange(desc(cases_pct_change)) %>%
       dplyr::mutate(rank_cases_change=dplyr::row_number(),
                     rank_cases_change_state=factor(paste0(rank_cases_change,". ",abbrev),levels=paste0(rank_cases_change,". ",abbrev))) %>%
       # change in deaths
-      dplyr::arrange(desc(deaths_change)) %>%
+      dplyr::arrange(desc(deaths_pct_change)) %>%
       dplyr::mutate(rank_deaths_change=dplyr::row_number(),
                     rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",abbrev),levels=paste0(rank_deaths_change,". ",abbrev)))
 
@@ -88,19 +88,19 @@ shinyServer(function(input, output) {
       select(cases,deaths,cases_daily,deaths_daily) %>%
       group_by() %>%
       summarize_all(sum) %>%
-      mutate(cases_change=cases_daily/(cases-cases_daily)*100,
-             deaths_change=deaths_daily/(deaths-deaths_daily)*100)
+      mutate(cases_pct_change=cases_daily/(cases-cases_daily),
+             deaths_pct_change=deaths_daily/(deaths-deaths_daily))
 
     output$us_cases_summary <- renderText({
       text <- with(covid_us_summary,
            paste0("<strong>Total cases</strong><br/>",format(cases,big.mark = ",")," (+",
-                  format(cases_daily,big.mark = ","),", ",format(cases_change,big.mark = ",",digits = 3),"%)"))
+                  format(cases_daily,big.mark = ","),", ",format(cases_pct_change,big.mark = ",",digits = 3),"%)"))
       HTML(text)
     })
     output$us_deaths_summary <- renderText({
       text <- with(covid_us_summary,
                    paste0("<strong>Total deaths</strong><br/>",format(deaths,big.mark = ",")," (+",
-                          format(deaths_daily,big.mark = ","),", ",format(deaths_change,big.mark = ",",digits = 3),"%)"))
+                          format(deaths_daily,big.mark = ","),", ",format(deaths_pct_change,big.mark = ",",digits = 3),"%)"))
       HTML(text)
     })
 
@@ -129,8 +129,8 @@ shinyServer(function(input, output) {
 
     output$table <- renderDT({
       covid_table_states <- covid_totals %>%
-        mutate(`+C%`=round(cases_change*100,1),
-               `+D%`=round(deaths_change*100,1)) %>%
+        mutate(`+C%`=round(cases_pct_change,1),
+               `+D%`=round(deaths_pct_change,1)) %>%
         select(` `=abbrev,
                Cases=cases,
                `+C`=cases_daily,
@@ -187,10 +187,10 @@ shinyServer(function(input, output) {
       y_axis_name <- case_when(
         input$yaxis == "Cases (daily)" ~ "cases_daily",
         input$yaxis == "Cases (total)" ~ "cases",
-        input$yaxis == "Cases (% change)" ~ "cases_change",
-        input$yaxis == "Deaths (daily)" ~ "deaths",
-        input$yaxis == "Deaths (total)" ~ "deaths_daily",
-        input$yaxis == "Deaths (% change)" ~ "deaths_change"
+        input$yaxis == "Cases (% change)" ~ "cases_pct_change",
+        input$yaxis == "Deaths (daily)" ~ "deaths_daily",
+        input$yaxis == "Deaths (total)" ~ "deaths",
+        input$yaxis == "Deaths (% change)" ~ "deaths_pct_change"
       )
       rank_name <- case_when(
         input$rankname == "Cases (absolute)" ~ "rank_cases_state",
@@ -255,7 +255,7 @@ shinyServer(function(input, output) {
 
     output$tableheader <- renderText({
       last_update <- covid_totals$last_date %>% max() %>% strftime("%b %d, %Y")
-      tableheader <- paste0("Latest data (updated: ",last_update,")")
+      tableheader <- paste0("Latest data from the NY Times (",last_update,")")
       tableheader
     })
 

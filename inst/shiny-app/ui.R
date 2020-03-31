@@ -34,9 +34,8 @@ shinyUI(fluidPage(
                h5(shiny::textOutput("tableheader")),
                DT::DTOutput("table")),
         column(6,
-               h5("Map: total cases (hover for details)"),
-               leaflet::leafletOutput("usmap",height=450),
-               p("Data provided by the NY Times.")
+               h5("Map of total cases (hover for details)"),
+               leaflet::leafletOutput("usmap",height=445)
         )
     ),
 
@@ -55,7 +54,7 @@ shinyUI(fluidPage(
                fluidRow(column(4,
                       numericInput("ngroup","N states",min=1,max=50,value=8),
                       selectInput("smooth","Smooth",c("No","Yes")),
-                      selectInput("yscale","Y scale",c("Linear","Log 10"))),
+                      selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
                column(8,
                       selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)")),
                       selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
