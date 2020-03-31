@@ -32,7 +32,7 @@ pal <- colorBin("YlOrRd", domain = c(0,1e6), bins = bins)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
-    covid_data <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
+    covid_data_us <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
       left_join(us_states %>% dplyr::select(lat=latitude,lon=longitude,state=name),by="state") %>%
       na.omit() %>%
       group_by(state) %>% arrange(state,date) %>%
@@ -48,7 +48,7 @@ shinyServer(function(input, output) {
       group_by(state,cum_deaths_25_lgl) %>%
       mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA)) %>%
       group_by()
-    covid_totals <- covid_data %>%
+    covid_totals_us <- covid_data_us %>%
       left_join(covid19vis::us_states %>% dplyr::select(abbrev=state,state=name),by="state") %>%
       arrange(state,date) %>%
       dplyr::group_by(state,abbrev,lat,lon,fips) %>%
@@ -79,17 +79,19 @@ shinyServer(function(input, output) {
                     rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",abbrev),levels=paste0(rank_deaths_change,". ",abbrev)))
 
     states <- USAboundaries::us_states() %>% dplyr::rename(fips=statefp) %>%
-      dplyr::left_join(covid_totals,by="fips")
+      dplyr::left_join(covid_totals_us,by="fips")
     states_labels <- sprintf(
       "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
       states$name, states$cases, states$cases_daily, states$deaths, states$deaths_daily
     ) %>% lapply(htmltools::HTML)
-    covid_us_summary <- covid_totals %>%
+    covid_us_summary <- covid_totals_us %>%
       select(cases,deaths,cases_daily,deaths_daily) %>%
       group_by() %>%
       summarize_all(sum) %>%
       mutate(cases_pct_change=cases_daily/(cases-cases_daily),
              deaths_pct_change=deaths_daily/(deaths-deaths_daily))
+
+
 
     output$us_cases_summary <- renderText({
       text <- with(covid_us_summary,
@@ -128,52 +130,15 @@ shinyServer(function(input, output) {
     })
 
     output$table <- renderDT({
-      covid_table_states <- covid_totals %>%
-        mutate(`+C%`=round(cases_pct_change,1),
-               `+D%`=round(deaths_pct_change,1)) %>%
-        select(` `=abbrev,
-               Cases=cases,
-               `+C`=cases_daily,
-               `+C%`,
-               D=deaths,
-               `+D`=deaths_daily) %>%
-        arrange(desc(Cases))
-      color_breaks <- covid_table_states %>%
-        summarize_at(vars(Cases,`+C`,D,`+D`),
-                     function(x) list(exp(seq(log(max(c(min(x,na.rm=T)-0.1,0.1))),log(max(x,na.rm=T)+0.5),length.out=19))))
-      color_breaks <- color_breaks %>% bind_cols(
-        covid_table_states %>%
-          summarize_at(vars(contains("%")),function(x) list(seq(min(x)-0.1,max(x)+0.5,length.out=19)))
-      )
+      if (input$maintab == "us") {
+        covid_totals <- covid_totals_us
+      } else if (input$maintab == "world") {
+        covid_totals <- covid_totals_world
+      }
 
-      # US summary in same format
-      # covid_us_summary <- covid_table_states %>% mutate(` `="US") %>%
-      #   group_by(` `) %>% summarize_if(is.numeric,sum) %>%
-      #   mutate(`+C%`=round(`+C`/(Cases-`+C`) * 100),1)
+      covid_DT <- prep_covid_DT(covid_totals)
 
-      covid_table <- covid_table_states
-      colors <- colorspace::heat_hcl(n=20,c=c(50,100),l=c(100,60),h=c(60,10))
-      # colorspace::swatchplot(colors)
-      DT::datatable(covid_table,rownames=F,
-                    options = list(searching=FALSE,
-                                   # formatNumber= formatNumber(),
-                                   lengthChange=FALSE,
-                                   pageLength = 10,
-                                   language.thousands=",",
-                                   pagingType="simple",
-                                   # initComplete = JS("function(settings, json) {$(this.api().table().header()).css({'font-size' : '10px'});}"),
-                                   autoWidth = TRUE
-                                   # columnDefs = list(list(width = '80%', targets = c(2,6)))#,
-                    )
-      ) %>%
-        formatRound(c("Cases","+C","D","+D"),digits = 0) %>%
-        formatStyle("Cases",background = styleInterval(color_breaks$Cases[[1]],colors)) %>%
-        formatStyle("+C",background = styleInterval(color_breaks$`+C`[[1]],colors)) %>%
-        formatStyle("+C%",background = styleInterval(color_breaks$`+C%`[[1]],colors)) %>%
-        formatStyle("D",background = styleInterval(color_breaks$D[[1]],colors)) %>%
-        formatStyle("+D",background = styleInterval(color_breaks$`+D`[[1]],colors)) #%>%
-        # formatStyle("+D%",background = styleInterval(color_breaks$`+D%`[[1]],colors)) %>%
-        # formatStyle(columns = rep(T,7), fontSize = '10px')
+      covid_DT
     })
 
     output$plot <- renderPlotly({
@@ -181,80 +146,95 @@ shinyServer(function(input, output) {
       # y_axis_name <- "cases_daily"
       # x_axis_name <- "days30"
       # rank_name <- "rank_cases_state"
-      # us_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
+      # map_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
       # input <- list(ngroup=8)
 
-      y_axis_name <- case_when(
-        input$yaxis == "Cases (daily)" ~ "cases_daily",
-        input$yaxis == "Cases (total)" ~ "cases",
-        input$yaxis == "Cases (% change)" ~ "cases_pct_change",
-        input$yaxis == "Deaths (daily)" ~ "deaths_daily",
-        input$yaxis == "Deaths (total)" ~ "deaths",
-        input$yaxis == "Deaths (% change)" ~ "deaths_pct_change"
-      )
-      rank_name <- case_when(
-        input$rankname == "Cases (absolute)" ~ "rank_cases_state",
-        input$rankname == "Deaths (absolute)" ~ "rank_deaths_state",
-        input$rankname == "Cases (% change)" ~ "rank_cases_change_state",
-        input$rankname == "Deaths (% change)" ~ "rank_deaths_change_state"
-      )
-      x_axis_name <- case_when(
-        input$xaxis == "Last 30 days" ~ "days30",
-        input$xaxis == "Days since 100th case" ~ "cases100days",
-        input$xaxis == "Days since 25th death" ~ "deaths25days"
-      )
-      var_name <- "state"
-      # covid_totals
+      foo <- "bar"
 
+      if (input$maintab == "us") {
+        covid_totals <- covid_totals_us
+        covid_data <- covid_data_us
+        map_bounds <- input$usmap_bounds
+      } else if (input$maintab == "world") {
+        covid_totals <- covid_totals_world
+        covid_data <- covid_data_world
+        map_bounds <- input$worldmap_bounds
+      }
+      print('covid_data')
+      print(covid_data)
+      if (!is.null(covid_data) & !is.null(covid_totals)) {
 
-      us_bounds <- input$usmap_bounds
-      # print(input$usmap_bounds)
+        y_axis_name <- case_when(
+          input$yaxis == "Cases (daily)" ~ "cases_daily",
+          input$yaxis == "Cases (total)" ~ "cases",
+          input$yaxis == "Cases (% change)" ~ "cases_pct_change",
+          input$yaxis == "Deaths (daily)" ~ "deaths_daily",
+          input$yaxis == "Deaths (total)" ~ "deaths",
+          input$yaxis == "Deaths (% change)" ~ "deaths_pct_change"
+        )
+        rank_name <- case_when(
+          input$rankname == "Cases (absolute)" ~ "rank_cases_state",
+          input$rankname == "Deaths (absolute)" ~ "rank_deaths_state",
+          input$rankname == "Cases (% change)" ~ "rank_cases_change_state",
+          input$rankname == "Deaths (% change)" ~ "rank_deaths_change_state"
+        )
+        x_axis_name <- case_when(
+          input$xaxis == "Last 30 days" ~ "days30",
+          input$xaxis == "Days since 100th case" ~ "cases100days",
+          input$xaxis == "Days since 25th death" ~ "deaths25days"
+        )
+        # var_name <- "state"
 
-      # pal <- colorNumeric(
-      #   palette = "Blues",
-      #   domain = countries$gdp_md_est)
+        covid_top <- covid_totals %>%
+          rename(rank = !!rank_name) %>%
+          dplyr::filter(lat>map_bounds$south,lat<map_bounds$north,
+                        lon>map_bounds$west,lon<map_bounds$east) %>%
+          dplyr::arrange(rank) %>%
+          dplyr::slice(1:input$ngroup)
 
-      covid_top <- covid_totals %>%
-        rename(rank = !!rank_name) %>%
-        dplyr::filter(lat>us_bounds$south,lat<us_bounds$north,
-                      lon>us_bounds$west,lon<us_bounds$east) %>%
-        dplyr::arrange(rank) %>%
-        dplyr::slice(1:input$ngroup)
-
-
-
-      covid_plot_data_prep <- covid_data %>%
-        rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
-        dplyr::filter(state %in% covid_top$state) %>%
-        dplyr::select(xvar,yvar,state) %>%
-        group_by()
-
-      if(input$smooth=="Yes") {
-        print("smoothing...")
-        covid_plot_data_prep <- covid_plot_data_prep %>%
-          group_by(state) %>% arrange(state,xvar) %>%
-          mutate(yvar=as.numeric(stats::filter(yvar,rep(1,7),sides=1))) %>%
+        covid_plot_data_prep <- covid_data %>%
+          rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
+          dplyr::filter(state %in% covid_top$state) %>%
+          dplyr::select(xvar,yvar,state) %>%
           group_by()
+
+        if(input$smooth=="Yes") {
+          print("smoothing...")
+          covid_plot_data_prep <- covid_plot_data_prep %>%
+            group_by(state) %>% arrange(state,xvar) %>%
+            mutate(yvar=as.numeric(stats::filter(yvar,rep(1,7),sides=1))) %>%
+            group_by()
+        }
+
+        covid_plot_data <- covid_plot_data_prep %>%
+          filter(!is.na(yvar), !is.na(xvar)) %>%
+          left_join(covid_top %>% select(state,rank),by="state")
+
+        plot <- ggplot(covid_plot_data,aes(xvar,yvar,color=rank)) + geom_line() + geom_point() +
+          labs(y=input$yaxis,x=input$xaxis) +
+          theme_bw() %+replace% theme(legend.title = element_blank())
+
+        if (input$yscale == "Log 10") {
+          plot <- plot + scale_y_log10()
+        }
+        plotly::ggplotly(plot)
+      } else {
+        p_empty <- ggplot(data.frame(x=1,y=1,label="Loading...")) +
+          geom_text(aes(x,y,label=label))
+        plotly::ggplotly(p_empty)
       }
+    })
 
-      covid_plot_data <- covid_plot_data_prep %>%
-        filter(!is.na(yvar), !is.na(xvar)) %>%
-        left_join(covid_top %>% select(state,rank),by="state")
-
-
-
-      plot <- ggplot(covid_plot_data,aes(xvar,yvar,color=rank)) + geom_line() + geom_point() +
-        labs(y=input$yaxis,x=input$xaxis) +
-        theme_bw() %+replace% theme(legend.title = element_blank())
-
-      if (input$yscale == "Log 10") {
-        plot <- plot + scale_y_log10()
-      }
-      plotly::ggplotly(plot)
+    output$maintab_title <- renderText({
+      scale_text <- dplyr::case_when(
+        input$maintab == "us"~"United States",
+        input$maintab == "world"~"World"
+      )
+      paste("COVID19:",scale_text)
     })
 
     output$tableheader <- renderText({
-      last_update <- covid_totals$last_date %>% max() %>% strftime("%b %d, %Y")
+      last_update <- covid_totals_us$last_date %>% max() %>% strftime("%b %d, %Y")
       tableheader <- paste0("Latest data from the NY Times (",last_update,")")
       tableheader
     })

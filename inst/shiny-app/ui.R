@@ -15,15 +15,23 @@ library(DT)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-
     # Application title
-    column(12,align='center',titlePanel("COVID19: United States")),
+    column(12,align='center',
+           h1(textOutput("maintab_title"))
+           # titlePanel("COVID19: United States")
+    ),
 
     fluidRow(
-        column(6,align='center',
+        column(3,offset=0,align='center',
+               HTML("<br/>"),
+               selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "us")
+        ),
+        column(4,offset=1,align='center',
+               HTML("<br/>"),
                htmlOutput("us_cases_summary")
         ),
-        column(6,align='center',
+        column(4,align='center',
+               HTML("<br/>"),
                htmlOutput("us_deaths_summary")
         )
     ),
@@ -52,14 +60,14 @@ shinyUI(fluidPage(
                p(" "),
                h5("Plot options"),
                fluidRow(column(4,
-                      numericInput("ngroup","N states",min=1,max=50,value=8),
-                      selectInput("smooth","Smooth",c("No","Yes")),
-                      selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
-               column(8,
-                      selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)")),
-                      selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
-                      selectInput("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"))
-               ))
+                               numericInput("ngroup","N states",min=1,max=50,value=8),
+                               selectInput("smooth","Smooth",c("No","Yes")),
+                               selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
+                        column(8,
+                               selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)")),
+                               selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
+                               selectInput("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"))
+                        ))
         ),
         column(8,
                plotly::plotlyOutput("plot")
