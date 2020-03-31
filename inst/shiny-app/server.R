@@ -33,58 +33,26 @@ pal <- colorBin("YlOrRd", domain = c(0,1e6), bins = bins)
 shinyServer(function(input, output) {
 
   # Get and prepare data
-  covid_data_us <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
-    left_join(us_states %>% dplyr::select(lat=latitude,lon=longitude,state=name),by="state") %>%
-    na.omit() %>%
-    group_by(state) %>% arrange(state,date) %>%
-    mutate(cases_daily=cases-lag(cases),
-           deaths_daily=deaths-lag(deaths),
-           cases_pct_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily)*100,0),
-           deaths_pct_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily)*100,0),
-           cum_cases_100_lgl=cases>=100,
-           cum_deaths_25_lgl=deaths>=25,
-           days30=if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
-    group_by(state,cum_cases_100_lgl) %>%
-    mutate(cases100days=ifelse(cum_cases_100_lgl,row_number()-1,NA)) %>%
-    group_by(state,cum_deaths_25_lgl) %>%
-    mutate(deaths25days=ifelse(cum_deaths_25_lgl,row_number()-1,NA)) %>%
-    group_by()
-  covid_totals_us <- covid_data_us %>%
-    left_join(covid19vis::us_states %>% dplyr::select(abbrev=state,state=name),by="state") %>%
-    arrange(state,date) %>%
-    dplyr::group_by(state,abbrev,lat,lon,fips) %>%
-    dplyr::summarize(cases=last(cases),
-                     deaths=last(deaths),
-                     cases_daily=last(cases_daily),
-                     deaths_daily=last(deaths_daily),
-                     cases_pct_change=last(cases_pct_change),
-                     deaths_pct_change=last(deaths_pct_change),
-                     last_date=last(date)) %>%
-    mutate(summary=paste0(abbrev," +",format(cases_daily,big.mark = ",")," (+",round(cases_pct_change),"%)")) %>%
-    group_by() %>%
-    # cases
-    dplyr::arrange(desc(cases)) %>%
-    dplyr::mutate(rank_cases=dplyr::row_number(),
-                  rank_cases_state=factor(paste0(rank_cases,". ",abbrev),levels=paste0(rank_cases,". ",abbrev))) %>%
-    # deaths
-    dplyr::arrange(desc(deaths)) %>%
-    dplyr::mutate(rank_deaths=dplyr::row_number(),
-                  rank_deaths_state=factor(paste0(rank_deaths,". ",abbrev),levels=paste0(rank_deaths,". ",abbrev))) %>%
-    # change in cases
-    dplyr::arrange(desc(cases_pct_change)) %>%
-    dplyr::mutate(rank_cases_change=dplyr::row_number(),
-                  rank_cases_change_state=factor(paste0(rank_cases_change,". ",abbrev),levels=paste0(rank_cases_change,". ",abbrev))) %>%
-    # change in deaths
-    dplyr::arrange(desc(deaths_pct_change)) %>%
-    dplyr::mutate(rank_deaths_change=dplyr::row_number(),
-                  rank_deaths_change_state=factor(paste0(rank_deaths_change,". ",abbrev),levels=paste0(rank_deaths_change,". ",abbrev)))
+  ### US DATA
+  covid_data_us_prep <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
+    rename(name=state,id=fips) %>%
+    left_join(us_states %>% dplyr::select(abbrev=state,lat=latitude,lon=longitude,name),by="name")
+  covid_data_us <- prep_covid_data(covid_data_us_prep)
+  # covid_data <- covid_data_us
+  covid_totals_us <- prep_covid_totals(covid_data_us)
+
+  ### WORLD DATA
+  covid_data_world_prep <- prep_covid_raw_world()
+  covid_data_world <- prep_covid_data(covid_data_world_prep)
+  # covid_data <- covid_data_us
+  covid_totals_world <- prep_covid_totals(covid_data_world) %>% dplyr::arrange(name)
 
   # Reactive data objects -- change depending on maintab
   covid_data <- reactive({
     if (input$maintab=="us") {
       covid_data <- covid_data_us
     } else if (input$maintab=="world") {
-      # covid_data <- covid_data_world
+      covid_data <- covid_data_world
     }
     covid_data
   })
@@ -93,7 +61,7 @@ shinyServer(function(input, output) {
     if (input$maintab=="us") {
       covid_totals <- covid_totals_us
     } else if (input$maintab=="world") {
-      # covid_totals <- covid_totals_world
+      covid_totals <- covid_totals_world
     }
     covid_totals
   })
@@ -109,8 +77,8 @@ shinyServer(function(input, output) {
 
   map_data <- reactive({
     if (input$maintab=="us") {
-      map_data <- USAboundaries::us_states() %>% dplyr::rename(fips=statefp) %>%
-        dplyr::left_join(covid_totals_us,by="fips")
+      map_data <- USAboundaries::us_states() %>% dplyr::rename(id=statefp) %>% dplyr::select(-name) %>%
+        dplyr::left_join(covid_totals_us,by=c("id"))
     } else if (input$maintab=="world") {
       # covid_totals <- covid_totals_world
     }
@@ -118,9 +86,10 @@ shinyServer(function(input, output) {
   })
 
   map_labels <- reactive({
+    map_data_df <- map_data()
     map_labels <- sprintf(
       "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
-      map_data()$name, map_data()$cases, map_data()$cases_daily, map_data()$deaths, map_data()$deaths_daily
+      map_data_df$name, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
     ) %>% lapply(htmltools::HTML)
     map_labels
   })
@@ -170,7 +139,7 @@ shinyServer(function(input, output) {
     # debug:
     # y_axis_name <- "cases_daily"
     # x_axis_name <- "days30"
-    # rank_name <- "rank_cases_state"
+    # rank_name <- "rank_cases_name"
     # map_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
     # input <- list(ngroup=8)
 
@@ -194,10 +163,10 @@ shinyServer(function(input, output) {
         input$yaxis == "Deaths (% change)" ~ "deaths_pct_change"
       )
       rank_name <- case_when(
-        input$rankname == "Cases (absolute)" ~ "rank_cases_state",
-        input$rankname == "Deaths (absolute)" ~ "rank_deaths_state",
-        input$rankname == "Cases (% change)" ~ "rank_cases_change_state",
-        input$rankname == "Deaths (% change)" ~ "rank_deaths_change_state"
+        input$rankname == "Cases (absolute)" ~ "rank_cases_name",
+        input$rankname == "Deaths (absolute)" ~ "rank_deaths_name",
+        input$rankname == "Cases (% change)" ~ "rank_cases_change_name",
+        input$rankname == "Deaths (% change)" ~ "rank_deaths_change_name"
       )
       x_axis_name <- case_when(
         input$xaxis == "Last 30 days" ~ "days30",
@@ -215,21 +184,21 @@ shinyServer(function(input, output) {
 
       covid_plot_data_prep <- covid_data() %>%
         rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
-        dplyr::filter(state %in% covid_top$state) %>%
-        dplyr::select(xvar,yvar,state) %>%
+        dplyr::filter(name %in% covid_top$name) %>%
+        dplyr::select(xvar,yvar,name) %>%
         group_by()
 
       if(input$smooth=="Yes") {
         print("smoothing...")
         covid_plot_data_prep <- covid_plot_data_prep %>%
-          group_by(state) %>% arrange(state,xvar) %>%
+          group_by(name) %>% arrange(name,xvar) %>%
           mutate(yvar=as.numeric(stats::filter(yvar,rep(1,7),sides=1))) %>%
           group_by()
       }
 
       covid_plot_data <- covid_plot_data_prep %>%
         filter(!is.na(yvar), !is.na(xvar)) %>%
-        left_join(covid_top %>% select(state,rank),by="state")
+        left_join(covid_top %>% select(name,rank),by="name")
 
       plot <- ggplot(covid_plot_data,aes(xvar,yvar,color=rank)) + geom_line() + geom_point() +
         labs(y=input$yaxis,x=input$xaxis) +
