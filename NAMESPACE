@@ -2,6 +2,7 @@
 
 export(prep_covid_DT)
 export(prep_covid_data)
+export(prep_covid_raw_us)
 export(prep_covid_raw_world)
 export(prep_covid_totals)
 importFrom(magrittr,"%>%")

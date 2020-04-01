@@ -4,11 +4,11 @@
 \alias{prep_covid_raw_world}
 \title{Download and prep world data}
 \usage{
-prep_covid_raw_world()
+prep_covid_raw_world(cases_url, deaths_url)
 }
 \description{
-Download and prep world data
+Download and prep world data from JHU CSSE
 }
 \examples{
-prep_covid_raw_world()
+cov_raw <- prep_covid_raw_world()
 }
