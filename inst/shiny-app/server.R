@@ -179,8 +179,8 @@ shinyServer(function(input, output) {
       addProviderTiles(providers$CartoDB.Positron) %>%
       # leafem::addMouseCoordinates() %>%
       # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
-      addScaleBar(position = c("bottomright"), options = scaleBarOptions()) %>%
-      setView(lng = -97.7129, lat = 37.0902, zoom=3)
+      addScaleBar(position = c("bottomright"), options = scaleBarOptions())%>%
+      setView(lng = 5, lat = 5, zoom=1)
   })
 
   output$table <- renderDT({
