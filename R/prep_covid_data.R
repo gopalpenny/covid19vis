@@ -1,6 +1,7 @@
 # prep_covid_data.R
 
 #' Prepare covid data
+#' @export
 prep_covid_data <- function(covid_data_prep) {
   covid_data <- covid_data_prep %>%
     na.omit() %>%
@@ -21,6 +22,7 @@ prep_covid_data <- function(covid_data_prep) {
 }
 
 #' Download and prep world data
+#' @export
 prep_covid_raw_world <- function() {
   covid_data_world_cases_prep <- readr::read_csv(url(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
@@ -47,6 +49,7 @@ prep_covid_raw_world <- function() {
 
 #' Prepare covid data totals
 #'
+#' @export
 prep_covid_totals <- function(covid_data) {
 
   covid_totals <- covid_data %>%
