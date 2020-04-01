@@ -48,7 +48,8 @@ shinyServer(function(input, output) {
 
   map_data_world <- rnaturalearth::ne_countries(scale="small",returnclass = "sf") %>%
     select(id=adm0_a3) %>%
-    left_join(covid_totals_world,by="id")
+    left_join(covid_totals_world,by="id") %>%
+    filter(!is.na(name))
 
   ## additional data
   usbins <- 10^c(1:5)
@@ -95,11 +96,19 @@ shinyServer(function(input, output) {
 
   map_labels <- reactive({
     map_data_df <- map_data()
+    # map_labels_vector <- paste0("<strong>",map_data_df$name,"</strong><br/>",
+    #                      format(map_data_df$cases,big.mark=",",width=0)," (+",format(map_data_df$cases_daily,big.mark=",",width=0),") cases<br/>",
+    #                      format(map_data_df$deaths,big.mark=",",width=0)," (+",format(map_data_df$deaths_daily,big.mark=",",width=0),") deaths")
+    # map_labels <- lapply(map_labels_vector,function(x) x)
     map_labels <- sprintf(
-      "<strong>%s</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
-      map_data_df$name, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
+      "<strong>%s (%s)</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
+      map_data_df$name, map_data_df$abbrev, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
     ) %>% lapply(htmltools::HTML)
+    print("map_data")
+    print(map_data_df)
     map_labels
+    # print("map_labels")
+    # print(map_labels)
   })
 
   mappal <- reactive({
@@ -168,7 +177,7 @@ shinyServer(function(input, output) {
       # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
       #                  options = layersControlOptions(collapsed = FALSE)) %>%
       # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
-      addLegend(position = "bottomright",pal=pal,data=map_data(),values = ~cases) %>%
+      addLegend(position = "bottomleft",pal=pal,data=map_data(),values = ~cases) %>%
       fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north)
 
   })
@@ -180,7 +189,7 @@ shinyServer(function(input, output) {
       # leafem::addMouseCoordinates() %>%
       # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
       addScaleBar(position = c("bottomright"), options = scaleBarOptions())%>%
-      setView(lng = 5, lat = 5, zoom=1)
+      setView(lng = 5, lat = 0, zoom=1)
   })
 
   output$table <- renderDT({
@@ -276,8 +285,14 @@ shinyServer(function(input, output) {
   })
 
   output$tableheader <- renderText({
-    last_update <- covid_totals_us$last_date %>% max() %>% strftime("%b %d, %Y")
-    tableheader <- paste0("Latest data from the NY Times (",last_update,")")
+    covid_tot <- covid_totals()
+    last_update <- covid_tot$last_date %>% max() %>% strftime("%b %d, %Y")
+    if (input$maintab=="us") {
+      data_source <- "the NY Times"
+    } else if (input$maintab=="world") {
+      data_source <- "JHU CSSE"
+    }
+    tableheader <- paste0("Latest data from ",data_source," (",last_update,")")
     tableheader
   })
 
