@@ -1,6 +1,8 @@
 # prep_covid_data.R
 
 #' Prepare covid data
+#' @importFrom rlang .data
+#' @importFrom magrittr %>%
 #' @export
 prep_covid_data <- function(covid_data_prep) {
   covid_data <- covid_data_prep %>%
@@ -22,6 +24,8 @@ prep_covid_data <- function(covid_data_prep) {
 }
 
 #' Download and prep world data
+#' @importFrom rlang .data
+#' @importFrom magrittr %>%
 #' @export
 prep_covid_raw_world <- function() {
   covid_data_world_cases_prep <- readr::read_csv(url(
@@ -49,6 +53,8 @@ prep_covid_raw_world <- function() {
 
 #' Prepare covid data totals
 #'
+#' @importFrom rlang .data
+#' @importFrom magrittr %>%
 #' @export
 prep_covid_totals <- function(covid_data) {
 

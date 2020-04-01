@@ -1,22 +1,24 @@
 # covid_table.R
 
 #' Prepare covid DataTable
+#' @importFrom rlang .data
+#' @importFrom magrittr %>%
 #' @export
 prep_covid_DT <- function(covid_totals) {
   covid_table <- covid_totals %>%
-    dplyr::mutate(`+C%`=round(cases_pct_change,1),
-           `+D%`=round(deaths_pct_change,1)) %>%
-    dplyr::select(` `=abbrev,
-           Cases=cases,
-           `+C`=cases_daily,
-           `+C%`,
-           D=deaths,
-           `+D`=deaths_daily) %>%
-    dplyr::arrange(desc(Cases))
+    dplyr::mutate(`+C%`=round(.data$cases_pct_change,1),
+           `+D%`=round(.data$deaths_pct_change,1)) %>%
+    dplyr::select(` `=.data$abbrev,
+           Cases=.data$cases,
+           `+C`=.data$cases_daily,
+           .data$`+C%`,
+           D=.data$deaths,
+           `+D`=.data$deaths_daily) %>%
+    dplyr::arrange(desc(.data$Cases))
 
 
   color_breaks <- covid_table %>%
-    dplyr::summarize_at(vars(Cases,`+C`,D,`+D`),
+    dplyr::summarize_at(dplyr::vars(.data$Cases,.data$`+C`,.data$D,.data$`+D`),
                  function(x) list(exp(seq(log(max(c(min(x,na.rm=T)-0.1,0.1))),log(max(x,na.rm=T)+0.5),length.out=19))))
   color_breaks <- color_breaks %>% dplyr::bind_cols(
     covid_table %>%
