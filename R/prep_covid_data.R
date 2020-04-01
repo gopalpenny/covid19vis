@@ -28,27 +28,28 @@ prep_covid_data <- function(covid_data_prep) {
 #' @importFrom magrittr %>%
 #' @export
 #' @examples
-#' prep_covid_raw_world()
+#' cov_raw <- prep_covid_raw_world()
 prep_covid_raw_world <- function() {
+  abbrev_df <- country_iso3
   covid_data_world_cases_prep <- readr::read_csv(url(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
   )) %>%
     tidyr::gather(date,cases,ends_with("20")) %>%
-    rename(name=`Country/Region`,lat=Lat,lon=Long) %>% group_by(name,date) %>%
-    summarize(cases=sum(cases)) %>% dplyr::mutate(date=as.Date(date,format="%m/%d/%y"))
+    dplyr::rename(name=`Country/Region`,lat=Lat,lon=Long) %>% dplyr::group_by(name,date) %>%
+    dplyr::summarize(cases=sum(cases)) %>% dplyr::mutate(date=as.Date(date,format="%m/%d/%y"))
   covid_data_world_deaths_prep <- readr::read_csv(url(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
   )) %>%
     tidyr::gather(date,deaths,ends_with("20")) %>%
-    rename(name=`Country/Region`,lat=Lat,lon=Long) %>% group_by(name,date) %>%
-    summarize(deaths=sum(deaths),
+    dplyr::rename(name=`Country/Region`,lat=Lat,lon=Long) %>% dplyr::group_by(name,date) %>%
+    dplyr::summarize(deaths=sum(deaths),
               lat=mean(lat),
               lon=mean(lon)) %>%
     dplyr::mutate(date=as.Date(date,format="%m/%d/%y"))
   covid_data_world_prep <- covid_data_world_cases_prep %>%
-    left_join(covid_data_world_deaths_prep,by=c("name","date")) %>%
-    dplyr::mutate(id=countrycode::countrycode(name,origin="country.name",destination = "iso3c"),
-                  abbrev=id) %>%
+    dplyr::left_join(covid_data_world_deaths_prep,by=c("name","date")) %>%
+    dplyr::left_join(abbrev_df,by="name") %>%
+    dplyr::mutate(id=abbrev) %>%
     dplyr::arrange(name,date)
   return(covid_data_world_prep)
 }
