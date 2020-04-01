@@ -1,6 +1,7 @@
 # covid_table.R
 
 #' Prepare covid DataTable
+#' @export
 prep_covid_DT <- function(covid_totals) {
   covid_table <- covid_totals %>%
     dplyr::mutate(`+C%`=round(cases_pct_change,1),
