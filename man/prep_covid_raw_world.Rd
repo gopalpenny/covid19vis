@@ -9,3 +9,6 @@ prep_covid_raw_world()
 \description{
 Download and prep world data
 }
+\examples{
+prep_covid_raw_world()
+}

@@ -27,6 +27,8 @@ prep_covid_data <- function(covid_data_prep) {
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%
 #' @export
+#' @examples
+#' prep_covid_raw_world()
 prep_covid_raw_world <- function() {
   covid_data_world_cases_prep <- readr::read_csv(url(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
