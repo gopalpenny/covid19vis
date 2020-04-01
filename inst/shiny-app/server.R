@@ -15,6 +15,8 @@ library(magrittr)
 library(ggplot2)
 library(plotly)
 library(sf)
+library(rgeos)
+library(rnaturalearth)
 library(DT)
 
 # if (!interactive()) {
