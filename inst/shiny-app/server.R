@@ -38,20 +38,20 @@ shinyServer(function(input, output) {
   # Get and prepare data
   ### US DATA
   # # NY Times data (no longer used)
-  covid_data_us_prep <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
+  covid_data_us_prep1 <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
     rename(name=state,id=fips) %>%
     left_join(us_states %>% dplyr::select(abbrev,lat=latitude,lon=longitude,name),by="name")
 
   # # CSSE data from Johns Hopkins
-  # us_cases_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
-  # us_deaths_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
-  # covid_data_us_prep <- prep_covid_raw_us(us_cases_url,us_deaths_url)
+  us_cases_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+  us_deaths_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
+  covid_data_us_prep <- prep_covid_raw_us(us_cases_url,us_deaths_url)
+
   covid_data_us <- prep_covid_data(covid_data_us_prep)
-  # covid_data <- covid_data_us
   covid_totals_us <- prep_covid_totals(covid_data_us)
 
-  map_data_us <- usaboundaries_usstates %>%
-    dplyr::left_join(covid_totals_us,by=c("id"))
+  map_data_us <- usaboundaries_usstates %>% dplyr::rename(abbrev=stusps) %>%
+    dplyr::left_join(covid_totals_us,by=c("abbrev"))
 
   ### WORLD DATA
   world_cases_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
@@ -230,7 +230,7 @@ shinyServer(function(input, output) {
     cov_total <- covid_totals()
     # print('covid_data')
     # print(covid_data())
-    if (!is.null(covid_totals())) {
+    if (!is.null(map_bounds)) {
 
       y_axis_name <- case_when(
         input$yaxis == "Cases (daily)" ~ "cases_daily",
@@ -266,6 +266,11 @@ shinyServer(function(input, output) {
         dplyr::select(xvar,yvar,name) %>%
         group_by()
 
+      # covid_plot_data_prep2 <- covid_data() %>%
+      #   dplyr::filter(name %in% covid_top$name) %>%
+      #   dplyr::select(!!y_axis_name,!!x_axis_name,name) %>%
+      #   group_by()
+
       if(input$smooth=="Yes") {
         print("smoothing...")
         covid_plot_data_prep <- covid_plot_data_prep %>%
@@ -286,11 +291,16 @@ shinyServer(function(input, output) {
       if (input$yscale == "Log 10") {
         plot <- plot + ggplot2::scale_y_log10()
       }
-      plotly::ggplotly(plot)
+      plotly::ggplotly(plot) %>%
+        plotly::layout(legend = list(orientation = 'h',
+                                     y = 1,
+                                     yanchor="bottom"))
     } else {
-      p_empty <- ggplot2::ggplot(data.frame(x=1,y=1,label="Loading...")) +
-        ggplot2::geom_text(ggplot2::aes(x,y,label=label))
-      plotly::ggplotly(p_empty)
+      # p_empty <- ggplot2::ggplot(data.frame(x=1,y=1,label="Loading...")) +
+      #   ggplot2::geom_text(ggplot2::aes(x,y,label=label))
+      # plotly::ggplotly(p_empty)
+      plot_null <- NULL
+      plot_null
     }
   })
 
@@ -306,7 +316,8 @@ shinyServer(function(input, output) {
     covid_tot <- covid_totals()
     last_update <- covid_tot$last_date %>% max() %>% strftime("%b %d, %Y")
     if (input$maintab=="us") {
-      data_source <- "the NY Times"
+      # data_source <- "the NY Times"
+      data_source <- "JHU CSSE"
     } else if (input$maintab=="world") {
       data_source <- "JHU CSSE"
     }
