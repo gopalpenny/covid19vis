@@ -7,16 +7,21 @@
 #    http://shiny.rstudio.com/
 #
 
+if (FALSE) {
+  library(profvis)
+  profvis({shiny::runApp("inst/shiny-app")})
+}
+
 library(shiny)
-library(leaflet)
+# library(leaflet)
 library(covid19vis)
 library(dplyr)
-library(magrittr)
-library(ggplot2)
-library(plotly)
+# library(magrittr)
+# library(ggplot2)
+# library(plotly)
 library(sf)
-library(rgeos)
-library(rnaturalearth)
+# library(rgeos)
+# library(rnaturalearth)
 library(DT)
 
 # if (!interactive()) {
@@ -45,7 +50,7 @@ shinyServer(function(input, output) {
   # covid_data <- covid_data_us
   covid_totals_us <- prep_covid_totals(covid_data_us)
 
-  map_data_us <- USAboundaries::us_states() %>% dplyr::rename(id=statefp) %>% dplyr::select(-name) %>%
+  map_data_us <- usaboundaries_usstates %>%
     dplyr::left_join(covid_totals_us,by=c("id"))
 
   ### WORLD DATA
@@ -56,16 +61,15 @@ shinyServer(function(input, output) {
   # covid_data <- covid_data_us
   covid_totals_world <- prep_covid_totals(covid_data_world) %>% dplyr::arrange(name)
 
-  map_data_world <- rnaturalearth::ne_countries(scale="small",returnclass = "sf") %>%
-    select(id=adm0_a3) %>%
+  map_data_world <- rnatural_worldmap %>%
     left_join(covid_totals_world,by="id") %>%
     filter(!is.na(name))
 
   ## additional data
   usbins <- 10^c(1:5)
-  uspal <- colorBin("YlOrRd", domain = c(0,1e6), bins = usbins)
+  uspal <- leaflet::colorBin("YlOrRd", domain = c(0,1e6), bins = usbins)
   worldbins <- c(0,10^c(1:6))
-  worldpal <- colorBin("YlOrRd", domain = c(0,1e6), bins = worldbins)
+  worldpal <- leaflet::colorBin("YlOrRd", domain = c(0,1e6), bins = worldbins)
 
   # Reactive data objects -- change depending on maintab
   covid_data <- reactive({
@@ -114,8 +118,8 @@ shinyServer(function(input, output) {
       "<strong>%s (%s)</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
       map_data_df$name, map_data_df$abbrev, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
     ) %>% lapply(htmltools::HTML)
-    print("map_data")
-    print(map_data_df)
+    # print("map_data")
+    # print(map_data_df)
     map_labels
     # print("map_labels")
     # print(map_labels)
@@ -136,6 +140,7 @@ shinyServer(function(input, output) {
                         format(cases_daily,big.mark = ","),", ",format(cases_pct_change,big.mark = ",",digits = 3),"%)"))
     HTML(text)
   })
+
   output$us_deaths_summary <- renderText({
     text <- with(covid_summary(),
                  paste0("<strong>Total deaths</strong><br/>",format(deaths,big.mark = ",")," (+",
@@ -173,9 +178,9 @@ shinyServer(function(input, output) {
     pal <- mappal()
     map_bounds <- mapbounds()
 
-    leafletProxy("usmap") %>%
-      clearGroup("poly") %>% clearControls()  %>%
-      addPolygons(data=map_data(),stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
+    leaflet::leafletProxy("usmap") %>%
+      leaflet::clearGroup("poly") %>% leaflet::clearControls()  %>%
+      leaflet::addPolygons(data=map_data(),stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
                   fillColor = ~pal(cases),color=~pal(cases),group="poly",
                   # highlightOptions = highlightOptions(
                   #   weight = 5,
@@ -187,27 +192,27 @@ shinyServer(function(input, output) {
       # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
       #                  options = layersControlOptions(collapsed = FALSE)) %>%
       # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
-      addLegend(position = "bottomleft",pal=pal,data=map_data(),values = ~cases) %>%
-      fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north)
+      leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data(),values = ~cases) %>%
+      leaflet::fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north)
 
   })
 
 
-  output$usmap <- renderLeaflet({
-    leaflet() %>%
-      addProviderTiles(providers$CartoDB.Positron) %>%
+  output$usmap <- leaflet::renderLeaflet({
+    leaflet::leaflet() %>%
+      leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>%
       # leafem::addMouseCoordinates() %>%
       # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
-      addScaleBar(position = c("bottomright"), options = scaleBarOptions())%>%
-      setView(lng = 5, lat = 0, zoom=1)
+      leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
+      leaflet::setView(lng = 5, lat = 0, zoom=1)
   })
 
-  output$table <- renderDT({
+  output$table <- DT::renderDT({
     covid_DT <- prep_covid_DT(covid_totals())
     covid_DT
   })
 
-  output$plot <- renderPlotly({
+  output$plot <- plotly::renderPlotly({
     # debug:
     # y_axis_name <- "cases_daily"
     # x_axis_name <- "days30"
@@ -221,9 +226,11 @@ shinyServer(function(input, output) {
 
     map_bounds <- map_info$worldbounds
 
-    print('covid_data')
-    print(covid_data())
-    if (!is.null(covid_data()) & !is.null(covid_totals())) {
+    # cov_data <- covid_data()
+    cov_total <- covid_totals()
+    # print('covid_data')
+    # print(covid_data())
+    if (!is.null(covid_totals())) {
 
       y_axis_name <- case_when(
         input$yaxis == "Cases (daily)" ~ "cases_daily",
@@ -246,7 +253,7 @@ shinyServer(function(input, output) {
       )
       # var_name <- "state"
 
-      covid_top <- covid_totals() %>%
+      covid_top <- cov_total %>%
         rename(rank = !!rank_name) %>%
         dplyr::filter(lat>map_bounds$south,lat<map_bounds$north,
                       lon>map_bounds$west,lon<map_bounds$east) %>%
@@ -271,17 +278,18 @@ shinyServer(function(input, output) {
         filter(!is.na(yvar), !is.na(xvar)) %>%
         left_join(covid_top %>% select(name,rank),by="name")
 
-      plot <- ggplot(covid_plot_data,aes(xvar,yvar,color=rank)) + geom_line() + geom_point() +
-        labs(y=input$yaxis,x=input$xaxis) +
-        theme_bw() %+replace% theme(legend.title = element_blank())
+      plot <- ggplot2::ggplot(covid_plot_data,ggplot2::aes(xvar,yvar,color=rank)) +
+        ggplot2::geom_line() + ggplot2::geom_point() +
+        ggplot2::labs(y=input$yaxis,x=input$xaxis) +
+        ggplot2::`%+replace%`(ggplot2::theme_bw(),ggplot2::theme(legend.title = ggplot2::element_blank()))
 
       if (input$yscale == "Log 10") {
-        plot <- plot + scale_y_log10()
+        plot <- plot + ggplot2::scale_y_log10()
       }
       plotly::ggplotly(plot)
     } else {
-      p_empty <- ggplot(data.frame(x=1,y=1,label="Loading...")) +
-        geom_text(aes(x,y,label=label))
+      p_empty <- ggplot2::ggplot(data.frame(x=1,y=1,label="Loading...")) +
+        ggplot2::geom_text(ggplot2::aes(x,y,label=label))
       plotly::ggplotly(p_empty)
     }
   })

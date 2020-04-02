@@ -9,9 +9,9 @@
 
 
 library(shiny)
-library(leaflet)
+# library(leaflet)
 library(covid19vis)
-library(DT)
+# library(DT)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
