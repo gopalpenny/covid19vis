@@ -55,21 +55,21 @@ shinyUI(fluidPage(
 
     # Sidebar with a slider input for number of bins
     fluidRow(
-        column(4,
+        column(5,
                p(" "),
                p(" "),
                h5("Plot options"),
-               fluidRow(column(4,
+               fluidRow(column(5,
                                numericInput("ngroup","N states",min=1,max=50,value=10),
                                selectInput("smooth","Smooth",c("No","Yes")),
                                selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
-                        column(8,
+                        column(7,
                                selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)"),selected="Cases (total)"),
                                selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
                                selectInput("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"))
                         ))
         ),
-        column(8,
+        column(7,
                plotly::plotlyOutput("plot")
         )
     )
