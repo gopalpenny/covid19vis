@@ -10,3 +10,13 @@
 #'
 #' ISO3 codes for countries produced from countrycode
 "country_iso3"
+
+#' World map
+#'
+#' ISO3 codes for countries produced from countrycode
+"rnatural_worldmap"
+
+#' US state boundaries
+#'
+#' ISO3 codes for countries produced from countrycode
+"usaboundaries_usstates"

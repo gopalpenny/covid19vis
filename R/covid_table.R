@@ -39,6 +39,7 @@ prep_covid_DT <- function(covid_totals) {
                                pageLength = 10,
                                language.thousands=",",
                                pagingType="simple",
+                               class="compact cell-border",
                                # initComplete = JS("function(settings, json) {$(this.api().table().header()).css({'font-size' : '10px'});}"),
                                autoWidth = TRUE
                                # columnDefs = list(list(width = '80%', targets = c(2,6)))#,
