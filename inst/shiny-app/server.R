@@ -172,6 +172,7 @@ shinyServer(function(input, output) {
     } else if (input$maintab=="world") {
       mapbounds <- map_info$worldbounds
     }
+    mapbounds
   })
 
   observeEvent(input$maintab,{
@@ -224,13 +225,14 @@ shinyServer(function(input, output) {
 
     print(str(input$usmap_bounds))
 
-    map_bounds <- map_info$worldbounds
+    map_bounds <- mapbounds()
 
     # cov_data <- covid_data()
-    cov_total <- covid_totals()
     # print('covid_data')
     # print(covid_data())
     if (!is.null(map_bounds)) {
+      cov_total <- covid_totals()
+      cov_data <- covid_data()
 
       y_axis_name <- case_when(
         input$yaxis == "Cases (daily)" ~ "cases_daily",
@@ -260,7 +262,7 @@ shinyServer(function(input, output) {
         dplyr::arrange(rank) %>%
         dplyr::slice(1:input$ngroup)
 
-      covid_plot_data_prep <- covid_data() %>%
+      covid_plot_data_prep <- cov_data %>%
         rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
         dplyr::filter(name %in% covid_top$name) %>%
         dplyr::select(xvar,yvar,name) %>%
