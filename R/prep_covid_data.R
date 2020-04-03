@@ -66,17 +66,15 @@ prep_covid_raw_us <- function(cases_url,deaths_url) {
 #' @examples
 #' cov_raw <- prep_covid_raw_world()
 prep_covid_raw_world <- function(cases_url,deaths_url) {
-  abbrev_df <- country_iso3
+  abbrev_df <- country_iso3 %>% dplyr::select(name,abbrev,lat,lon)
   covid_data_world_cases_prep <- readr::read_csv(url(cases_url)) %>%
     tidyr::gather(date,cases,ends_with("20")) %>%
     dplyr::rename(name=`Country/Region`,lat=Lat,lon=Long) %>% dplyr::group_by(name,date) %>%
     dplyr::summarize(cases=sum(cases)) %>% dplyr::mutate(date=as.Date(date,format="%m/%d/%y"))
   covid_data_world_deaths_prep <- readr::read_csv(url(deaths_url)) %>%
     tidyr::gather(date,deaths,ends_with("20")) %>%
-    dplyr::rename(name=`Country/Region`,lat=Lat,lon=Long) %>% dplyr::group_by(name,date) %>%
-    dplyr::summarize(deaths=sum(deaths),
-              lat=mean(lat),
-              lon=mean(lon)) %>%
+    dplyr::rename(name=`Country/Region`) %>% dplyr::group_by(name,date) %>%
+    dplyr::summarize(deaths=sum(deaths)) %>%
     dplyr::mutate(date=as.Date(date,format="%m/%d/%y"))
   covid_data_world_prep <- covid_data_world_cases_prep %>%
     dplyr::left_join(covid_data_world_deaths_prep,by=c("name","date")) %>%
