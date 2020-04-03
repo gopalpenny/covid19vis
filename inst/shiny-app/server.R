@@ -30,6 +30,9 @@ library(sf)
 #   dir <- "inst/shiny-app"
 # }
 dir <- "./"
+formnumber <- function(x, ...) {
+  gsub(" ","",format(x, ...))
+}
 
 
 # Define server logic required to draw a histogram
@@ -272,7 +275,7 @@ shinyServer(function(input, output) {
       covid_plot_data_prep$yvar <- cov_data[,y_axis_name][[1]]
       covid_plot_data_prep <- covid_plot_data_prep %>%
         dplyr::filter(name %in% covid_top$name) %>%
-        dplyr::select(xvar,yvar,name) %>%
+        # dplyr::select(xvar,yvar,name) %>%
         group_by()
       # cov_data %>% mutate(xvar = !! x_axis_name,
       #                     yvar = vars(y_axis_name)) %>%
@@ -302,22 +305,22 @@ shinyServer(function(input, output) {
       for (i in 1:nrow(covid_top)) {
         plot_data_df <- covid_plot_data %>% filter(name==covid_top$name[i])
         plot1 <- plot1 %>%
-          plotly::add_trace(x=plot_data_df$xvar,y=plot_data_df$yvar,name=covid_top$rank[i],
-                            hovertemplate=paste0('%{x}',
-                                                 '<br>',covid_top$name[i],' (',covid_top$abbrev[i],')',
-                                                 '<br>',format(covid_top$cases[i],big.mark = ","),' (+',format(covid_top$cases_daily[i],big.mark = ","),') cases',
-                                                 '<br>',format(covid_top$deaths[i],big.mark = ","),' (+',format(covid_top$deaths_daily[i],big.mark = ","),') deaths'))
+          plotly::add_trace(data=plot_data_df,
+                            x=~xvar,y=~yvar,name=~rank,
+                            text=~paste0('<b>',date,'</b>',
+                                         '<br>',name,' (',abbrev,')',
+                                         '<br>',formnumber(cases,big.mark = ","),' (+',formnumber(cases_daily,big.mark = ","),') cases',
+                                         '<br>',formnumber(deaths,big.mark = ","),' (+',formnumber(deaths_daily,big.mark = ","),') deaths'),
+                            hoverinfo='text')
+      }
 
-        # plotly::plot_ly(type='scatter',mode='lines+markers') %>%
-        #   plotly::add_trace(x=~xvar,y=~yvar,data=plot_data_df) #,
-      }
+      x_list <- list(title = input$xaxis)
+      y_list <- list(title = input$yaxis)
       if (input$yscale == "Log 10") {
-        plot1 <- plot1 %>% plotly::layout(yaxis = list(type="log")) %>%
-          plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
-      } else {
-        plot1 <- plot1 %>%
-          plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
+        y_list <- c(y_list,list(type="log"))
       }
+      plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
+        plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
 
       ###
 
