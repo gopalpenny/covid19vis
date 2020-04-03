@@ -22,7 +22,7 @@ library(dplyr)
 library(sf)
 # library(rgeos)
 # library(rnaturalearth)
-library(DT)
+# library(DT)
 
 # if (!interactive()) {
 #   dir <- "./"
@@ -215,17 +215,22 @@ shinyServer(function(input, output) {
 
   output$plot <- plotly::renderPlotly({
     # debug:
-    # y_axis_name <- "cases_daily"
-    # x_axis_name <- "days30"
-    # rank_name <- "rank_cases_name"
-    # map_bounds <- list(north=44.5,south=28.8,east=-77.7,west=-117.7)
-    # input <- list(ngroup=8)
+    if(FALSE) {
+      y_axis_name <- "cases_daily"
+      x_axis_name <- "days30"
+      rank_name <- "rank_cases_name"
+      map_bounds <- list(north=44.5,south=0,east=-77.7,west=-117.7)
+      input <- list(ngroup=8)
+      cov_total <- covid_totals_world
+      cov_data <- covid_data_world
+    }
 
     foo <- "bar"
 
     print(str(input$usmap_bounds))
 
     map_bounds <- mapbounds()
+    print(str(map_bounds))
 
     # cov_data <- covid_data()
     # print('covid_data')
@@ -262,11 +267,15 @@ shinyServer(function(input, output) {
         dplyr::arrange(rank) %>%
         dplyr::slice(1:input$ngroup)
 
-      covid_plot_data_prep <- cov_data %>%
-        rename(yvar = !!y_axis_name, xvar = !!x_axis_name) %>%
+      covid_plot_data_prep <- cov_data
+      covid_plot_data_prep$xvar <- cov_data[,x_axis_name][[1]]
+      covid_plot_data_prep$yvar <- cov_data[,y_axis_name][[1]]
+      covid_plot_data_prep <- covid_plot_data_prep %>%
         dplyr::filter(name %in% covid_top$name) %>%
         dplyr::select(xvar,yvar,name) %>%
         group_by()
+      # cov_data %>% mutate(xvar = !! x_axis_name,
+      #                     yvar = vars(y_axis_name)) %>%
 
       # covid_plot_data_prep2 <- covid_data() %>%
       #   dplyr::filter(name %in% covid_top$name) %>%
@@ -285,18 +294,46 @@ shinyServer(function(input, output) {
         filter(!is.na(yvar), !is.na(xvar)) %>%
         left_join(covid_top %>% select(name,rank),by="name")
 
-      plot <- ggplot2::ggplot(covid_plot_data,ggplot2::aes(xvar,yvar,color=rank)) +
-        ggplot2::geom_line() + ggplot2::geom_point() +
-        ggplot2::labs(y=input$yaxis,x=input$xaxis) +
-        ggplot2::`%+replace%`(ggplot2::theme_bw(),ggplot2::theme(legend.title = ggplot2::element_blank()))
-
+      ### plotly
       if (input$yscale == "Log 10") {
-        plot <- plot + ggplot2::scale_y_log10()
+        covid_plot_data <- covid_plot_data %>% mutate(yvar = ifelse(yvar==0,NA,yvar))
       }
-      plotly::ggplotly(plot) %>%
-        plotly::layout(legend = list(orientation = 'h',
-                                     y = 1,
-                                     yanchor="bottom"))
+      plot1 <- plotly::plot_ly(type='scatter',mode='lines+markers')
+      for (i in 1:nrow(covid_top)) {
+        plot_data_df <- covid_plot_data %>% filter(name==covid_top$name[i])
+        plot1 <- plot1 %>%
+          plotly::add_trace(x=plot_data_df$xvar,y=plot_data_df$yvar,name=covid_top$rank[i],
+                            hovertemplate=paste0('%{x}',
+                                                 '<br>',covid_top$name[i],' (',covid_top$abbrev[i],')',
+                                                 '<br>',format(covid_top$cases[i],big.mark = ","),' (+',format(covid_top$cases_daily[i],big.mark = ","),') cases',
+                                                 '<br>',format(covid_top$deaths[i],big.mark = ","),' (+',format(covid_top$deaths_daily[i],big.mark = ","),') deaths'))
+
+        # plotly::plot_ly(type='scatter',mode='lines+markers') %>%
+        #   plotly::add_trace(x=~xvar,y=~yvar,data=plot_data_df) #,
+      }
+      if (input$yscale == "Log 10") {
+        plot1 <- plot1 %>% plotly::layout(yaxis = list(type="log")) %>%
+          plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
+      } else {
+        plot1 <- plot1 %>%
+          plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
+      }
+
+      ###
+
+      # plot <- ggplot2::ggplot(covid_plot_data,ggplot2::aes(xvar,yvar,color=rank)) +
+      #   ggplot2::geom_line() + ggplot2::geom_point() +
+      #   ggplot2::labs(y=input$yaxis,x=input$xaxis) +
+      #   ggplot2::`%+replace%`(ggplot2::theme_bw(),ggplot2::theme(legend.title = ggplot2::element_blank()))
+      #
+      # if (input$yscale == "Log 10") {
+      #   plot <- plot + ggplot2::scale_y_log10()
+      # }
+      # plotly::ggplotly(plot) %>%
+      #   plotly::layout(legend = list(orientation = 'h',
+      #                                y = 1,
+      #                                yanchor="bottom"))
+      plot1
     } else {
       # p_empty <- ggplot2::ggplot(data.frame(x=1,y=1,label="Loading...")) +
       #   ggplot2::geom_text(ggplot2::aes(x,y,label=label))
