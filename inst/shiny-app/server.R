@@ -113,14 +113,14 @@ shinyServer(function(input, output) {
 
   map_labels <- reactive({
     map_data_df <- map_data()
-    # map_labels_vector <- paste0("<strong>",map_data_df$name,"</strong><br/>",
-    #                      format(map_data_df$cases,big.mark=",",width=0)," (+",format(map_data_df$cases_daily,big.mark=",",width=0),") cases<br/>",
-    #                      format(map_data_df$deaths,big.mark=",",width=0)," (+",format(map_data_df$deaths_daily,big.mark=",",width=0),") deaths")
-    # map_labels <- lapply(map_labels_vector,function(x) x)
-    map_labels <- sprintf(
-      "<strong>%s (%s)</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
-      map_data_df$name, map_data_df$abbrev, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
-    ) %>% lapply(htmltools::HTML)
+    map_labels_vector <- paste0("<strong>",map_data_df$name,"</strong><br/>",
+                                formnumber(map_data_df$cases,big.mark=",",width=0)," (+",formnumber(map_data_df$cases_daily,big.mark=",",width=0),") cases<br/>",
+                                formnumber(map_data_df$deaths,big.mark=",",width=0)," (+",formnumber(map_data_df$deaths_daily,big.mark=",",width=0),") deaths")
+    map_labels <- lapply(map_labels_vector,function(x) htmltools::HTML(x))
+    # map_labels <- sprintf(
+    #   "<strong>%s (%s)</strong><br/>%g (+%g) cases<br/>%g (+%g) deaths",
+    #   map_data_df$name, map_data_df$abbrev, map_data_df$cases, map_data_df$cases_daily, map_data_df$deaths, map_data_df$deaths_daily
+    # ) %>% lapply(htmltools::HTML)
     # print("map_data")
     # print(map_data_df)
     map_labels
@@ -243,12 +243,12 @@ shinyServer(function(input, output) {
       cov_data <- covid_data()
 
       y_axis_name <- case_when(
-        input$yaxis == "Cases (daily)" ~ "cases_daily",
-        input$yaxis == "Cases (total)" ~ "cases",
-        input$yaxis == "Cases (% change)" ~ "cases_pct_change",
-        input$yaxis == "Deaths (daily)" ~ "deaths_daily",
-        input$yaxis == "Deaths (total)" ~ "deaths",
-        input$yaxis == "Deaths (% change)" ~ "deaths_pct_change"
+        input$yaxis_val == "Cases"  & input$yaxis_type == "New" ~ "cases_daily",
+        input$yaxis_val == "Cases"  & input$yaxis_type == "Total"  ~ "cases",
+        input$yaxis_val == "Cases"  & input$yaxis_type == "% change" ~ "cases_pct_change",
+        input$yaxis_val == "Deaths" & input$yaxis_type == "New"  ~ "deaths_daily",
+        input$yaxis_val == "Deaths" & input$yaxis_type == "Total"  ~ "deaths",
+        input$yaxis_val == "Deaths" & input$yaxis_type == "% change" ~ "deaths_pct_change"
       )
       rank_name <- case_when(
         input$rankname == "Cases (absolute)" ~ "rank_cases_name",
@@ -258,9 +258,15 @@ shinyServer(function(input, output) {
       )
       x_axis_name <- case_when(
         input$xaxis == "Last 30 days" ~ "days30",
-        input$xaxis == "Days since 100th case" ~ "cases100days",
-        input$xaxis == "Days since 25th death" ~ "deaths25days"
+        input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "cases100days",
+        input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "deaths25days"
       )
+      x_axis_label <- case_when(
+        input$xaxis == "Last 30 days" ~ "Last 30 days",
+        input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "Days since 100th case",
+        input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "Days since 25th death"
+      )
+
       # var_name <- "state"
 
       covid_top <- cov_total %>%
@@ -285,7 +291,7 @@ shinyServer(function(input, output) {
       #   dplyr::select(!!y_axis_name,!!x_axis_name,name) %>%
       #   group_by()
 
-      if(input$smooth=="Yes") {
+      if(input$smooth) {
         print("smoothing...")
         covid_plot_data_prep <- covid_plot_data_prep %>%
           group_by(name) %>% arrange(name,xvar) %>%
@@ -298,7 +304,7 @@ shinyServer(function(input, output) {
         left_join(covid_top %>% select(name,rank),by="name")
 
       ### plotly
-      if (input$yscale == "Log 10") {
+      if (input$logy) {
         covid_plot_data <- covid_plot_data %>% mutate(yvar = ifelse(yvar==0,NA,yvar))
       }
       plot1 <- plotly::plot_ly(type='scatter',mode='lines+markers')
@@ -314,10 +320,11 @@ shinyServer(function(input, output) {
                             hoverinfo='text')
       }
 
-      x_list <- list(title = input$xaxis)
-      y_list <- list(title = input$yaxis)
-      if (input$yscale == "Log 10") {
-        y_list <- c(y_list,list(type="log"))
+      x_list <- list(title = x_axis_label)
+      y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,")"))
+      avg_7_note <- ifelse(input$smooth," 7-day avg","")
+      if (input$logy) {
+        y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
       }
       plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
         plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
@@ -329,7 +336,7 @@ shinyServer(function(input, output) {
       #   ggplot2::labs(y=input$yaxis,x=input$xaxis) +
       #   ggplot2::`%+replace%`(ggplot2::theme_bw(),ggplot2::theme(legend.title = ggplot2::element_blank()))
       #
-      # if (input$yscale == "Log 10") {
+      # if (input$logy) {
       #   plot <- plot + ggplot2::scale_y_log10()
       # }
       # plotly::ggplotly(plot) %>%

@@ -59,15 +59,32 @@ shinyUI(fluidPage(
                p(" "),
                p(" "),
                h5("Plot options"),
-               fluidRow(column(5,
-                               numericInput("ngroup","N states",min=1,max=50,value=10),
-                               selectInput("smooth","Smooth",c("No","Yes")),
-                               selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
-                        column(7,
-                               selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)"),selected="Cases (total)"),
-                               selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
-                               selectInput("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"))
-                        ))
+               # fluidRow(column(5,
+               #                 sliderInput("ngroup","N states",min=1,max=20,value=10),
+               #                 selectInput("smooth","Smooth",c("No","Yes")),
+               #                 selectInput("yscale","Y scale",c("Linear","Log 10"),selected = "Log 10")),
+               #          column(7,
+               #                 selectInput("yaxis","Y axis",c("Cases (daily)","Cases (total)","Deaths (daily)","Deaths (total)","Cases (% change)","Deaths (% change)"),selected="Cases (total)"),
+               #                 selectInput("xaxis","X axis",c("Last 30 days","Days since 100th case","Days since 25th death")),
+               #                 selectInput("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"))
+               #          ))
+               fluidRow(
+                   column(12,align='center',
+                          sliderInput("ngroup","N states",min=1,max=20,value=10),
+                          radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
+                          radioButtons("yaxis_type","Y axis type",c("Total","New","% change"),selected="Total",inline=TRUE),
+                          fluidRow(
+                              column(6,align='center',
+                                     checkboxInput("logy","log(y)",value = TRUE)
+                              ),
+                              column(6,align='center',
+                                     checkboxInput("smooth","7-day avg",value=FALSE)
+                              ),
+                          ),
+                          radioButtons("xaxis","X axis",c("Last 30 days","Days since Nth"),inline=TRUE),
+                          radioButtons("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"),inline=TRUE)
+                   )
+               )
         ),
         column(7,
                plotly::plotlyOutput("plot")
