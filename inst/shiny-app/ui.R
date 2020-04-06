@@ -82,7 +82,7 @@ shinyUI(fluidPage(
                               ),
                           ),
                           radioButtons("xaxis","X axis",c("Last 30 days","Days since Nth"),inline=TRUE),
-                          radioButtons("rankname","Rank by",c("Cases (absolute)","Deaths (absolute)","Cases (% change)","Deaths (% change)"),inline=TRUE)
+                          radioButtons("rankname","Rank by",c("Cases (Total)","Deaths (Total)","Cases (New)","Deaths (New)"),inline=TRUE)
                    )
                )
         ),

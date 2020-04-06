@@ -112,12 +112,12 @@ prep_covid_totals <- function(covid_data) {
     dplyr::mutate(rank_deaths=dplyr::row_number(),
                   rank_deaths_name=factor(paste0(rank_deaths,". ",abbrev),levels=paste0(rank_deaths,". ",abbrev))) %>%
     # change in cases
-    dplyr::arrange(desc(cases_pct_change)) %>%
-    dplyr::mutate(rank_cases_change=dplyr::row_number(),
-                  rank_cases_change_name=factor(paste0(rank_cases_change,". ",abbrev),levels=paste0(rank_cases_change,". ",abbrev))) %>%
+    dplyr::arrange(desc(cases_daily)) %>%
+    dplyr::mutate(rank_cases_daily=dplyr::row_number(),
+                  rank_cases_daily_name=factor(paste0(rank_cases_daily,". ",abbrev),levels=paste0(rank_cases_daily,". ",abbrev))) %>%
     # change in deaths
-    dplyr::arrange(desc(deaths_pct_change)) %>%
-    dplyr::mutate(rank_deaths_change=dplyr::row_number(),
-                  rank_deaths_change_name=factor(paste0(rank_deaths_change,". ",abbrev),levels=paste0(rank_deaths_change,". ",abbrev)))
+    dplyr::arrange(desc(deaths_daily)) %>%
+    dplyr::mutate(rank_deaths_daily=dplyr::row_number(),
+                  rank_deaths_daily_name=factor(paste0(rank_deaths_daily,". ",abbrev),levels=paste0(rank_deaths_daily,". ",abbrev)))
   return(covid_totals)
 }

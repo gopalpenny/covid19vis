@@ -251,10 +251,10 @@ shinyServer(function(input, output) {
         input$yaxis_val == "Deaths" & input$yaxis_type == "% change" ~ "deaths_pct_change"
       )
       rank_name <- case_when(
-        input$rankname == "Cases (absolute)" ~ "rank_cases_name",
-        input$rankname == "Deaths (absolute)" ~ "rank_deaths_name",
-        input$rankname == "Cases (% change)" ~ "rank_cases_change_name",
-        input$rankname == "Deaths (% change)" ~ "rank_deaths_change_name"
+        input$rankname == "Cases (Total)" ~ "rank_cases_name",
+        input$rankname == "Deaths (Total)" ~ "rank_deaths_name",
+        input$rankname == "Cases (New)" ~ "rank_cases_daily_name",
+        input$rankname == "Deaths (New)" ~ "rank_deaths_daily_name"
       )
       x_axis_name <- case_when(
         input$xaxis == "Last 30 days" ~ "days30",
@@ -294,8 +294,8 @@ shinyServer(function(input, output) {
       if(input$smooth) {
         print("smoothing...")
         covid_plot_data_prep <- covid_plot_data_prep %>%
-          group_by(name) %>% arrange(name,xvar) %>%
-          mutate(yvar=as.numeric(stats::filter(yvar,rep(1,7),sides=1))) %>%
+          group_by(name) %>% arrange(name,date) %>%
+          mutate(yvar=as.numeric(stats::filter(yvar,rep(1/7,7),sides=1))) %>%
           group_by()
       }
 
@@ -320,9 +320,9 @@ shinyServer(function(input, output) {
                             hoverinfo='text')
       }
 
+      avg_7_note <- ifelse(input$smooth,", 7-day avg","")
       x_list <- list(title = x_axis_label)
-      y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,")"))
-      avg_7_note <- ifelse(input$smooth," 7-day avg","")
+      y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,avg_7_note,")"))
       if (input$logy) {
         y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
       }
