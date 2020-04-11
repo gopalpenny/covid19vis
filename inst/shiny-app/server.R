@@ -41,9 +41,9 @@ shinyServer(function(input, output) {
   # Get and prepare data
   ### US DATA
   # # NY Times data (no longer used)
-  covid_data_us_prep1 <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
-    rename(name=state,id=fips) %>%
-    left_join(us_states %>% dplyr::select(abbrev,lat=latitude,lon=longitude,name),by="name")
+  # covid_data_us_prep1 <- readr::read_csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")) %>%
+  #   rename(name=state,id=fips) %>%
+  #   left_join(us_states %>% dplyr::select(abbrev,lat=latitude,lon=longitude,name),by="name")
 
   # # CSSE data from Johns Hopkins
   us_cases_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
@@ -69,10 +69,14 @@ shinyServer(function(input, output) {
     filter(!is.na(name))
 
   ## additional data
-  usbins <- 10^c(1:5)
-  uspal <- leaflet::colorBin("YlOrRd", domain = c(0,1e6), bins = usbins)
-  worldbins <- c(0,10^c(1:6))
-  worldpal <- leaflet::colorBin("YlOrRd", domain = c(0,1e6), bins = worldbins)
+  umin <- floor(log10(min(covid_totals_us$cases,na.rm=TRUE)))
+  umax <- ceiling(log10(max(covid_totals_us$cases,na.rm=TRUE)))
+  usbins <- 10^c(umin:umax)
+  uspal <- leaflet::colorBin("YlOrRd", domain = c(10^umin,10^umax), bins = usbins)
+  wmin <- floor(log10(min(covid_totals_world$cases,na.rm=TRUE)))
+  wmax <- ceiling(log10(max(covid_totals_world$cases,na.rm=TRUE)))
+  worldbins <- 10^c(wmin:wmax)
+  worldpal <- leaflet::colorBin("YlOrRd", domain = c(10^wmin,10^wmax), bins = worldbins)
 
   # Reactive data objects -- change depending on maintab
   covid_data <- reactive({
@@ -227,7 +231,6 @@ shinyServer(function(input, output) {
       cov_total <- covid_totals_world
       cov_data <- covid_data_world
     }
-
     foo <- "bar"
 
     print(str(input$usmap_bounds))
@@ -257,15 +260,23 @@ shinyServer(function(input, output) {
         input$rankname == "Deaths (New)" ~ "rank_deaths_daily_name"
       )
       x_axis_name <- case_when(
-        input$xaxis == "Last 30 days" ~ "days30",
+        input$xaxis == "Last 30 days" ~ "date",
         input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "cases100days",
         input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "deaths25days"
       )
       x_axis_label <- case_when(
-        input$xaxis == "Last 30 days" ~ "Last 30 days",
+        input$xaxis == "Last 30 days" ~ paste("Last",input$ndays,"days"),
         input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "Days since 100th case",
         input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "Days since 25th death"
       )
+
+      if (x_axis_name == "date") {
+        cov_data$date[Sys.Date() - cov_data$date > input$ndays] <- NA
+      } else if (x_axis_name == "cases100days") {
+        cov_data$cases100days[cov_data$cases100days > input$ndays] <- NA
+      } else if (x_axis_name == "deaths25days") {
+        cov_data$cases100days[cov_data$deaths25days > input$ndays] <- NA
+      }
 
       # var_name <- "state"
 
@@ -291,7 +302,7 @@ shinyServer(function(input, output) {
       #   dplyr::select(!!y_axis_name,!!x_axis_name,name) %>%
       #   group_by()
 
-      if(input$smooth) {
+      if("7-day avg" %in% input$plotoptions) {
         print("smoothing...")
         covid_plot_data_prep <- covid_plot_data_prep %>%
           group_by(name) %>% arrange(name,date) %>%
@@ -304,7 +315,7 @@ shinyServer(function(input, output) {
         left_join(covid_top %>% select(name,rank),by="name")
 
       ### plotly
-      if (input$logy) {
+      if ("log(y)" %in% input$plotoptions) {
         covid_plot_data <- covid_plot_data %>% mutate(yvar = ifelse(yvar==0,NA,yvar))
       }
       plot1 <- plotly::plot_ly(type='scatter',mode='lines+markers')
@@ -320,10 +331,10 @@ shinyServer(function(input, output) {
                             hoverinfo='text')
       }
 
-      avg_7_note <- ifelse(input$smooth,", 7-day avg","")
+      avg_7_note <- ifelse("7-day avg" %in% input$plotoptions,", 7-day avg","")
       x_list <- list(title = x_axis_label)
       y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,avg_7_note,")"))
-      if (input$logy) {
+      if ("log(y)" %in% input$plotoptions) {
         y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
       }
       plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
