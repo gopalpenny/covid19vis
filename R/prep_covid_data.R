@@ -28,6 +28,7 @@ prep_covid_data <- function(covid_data_prep) {
 #' Download and prep US data from JHU CSSE
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%
+#' @importFrom readr read_csv
 #' @export
 #' @examples
 #' cases_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
@@ -62,6 +63,7 @@ prep_covid_raw_us <- function(cases_url,deaths_url) {
 #' Download and prep world data from JHU CSSE
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%
+#' @importFrom readr read_csv
 #' @export
 #' @examples
 #' cov_raw <- prep_covid_raw_world()
