@@ -4,7 +4,7 @@
 \name{country_iso3}
 \alias{country_iso3}
 \title{Country abbreviations}
-\format{An object of class \code{grouped_df} (inherits from \code{tbl_df}, \code{tbl}, \code{data.frame}) with 180 rows and 2 columns.}
+\format{An object of class \code{grouped_df} (inherits from \code{tbl_df}, \code{tbl}, \code{data.frame}) with 181 rows and 7 columns.}
 \usage{
 country_iso3
 }
