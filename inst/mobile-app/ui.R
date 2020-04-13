@@ -17,15 +17,14 @@ f7Page(
     init = f7Init(theme = "dark"),
     f7TabLayout(
         panels = tagList(
-            f7Panel(title = "Left Panel", side = "left", theme = "light", effect = "cover",
-                    HTML("<br/>"),
-                    selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "world"),
-                    HTML("<br/>"),
-                    htmlOutput("us_cases_summary"),
-                    HTML("<br/>"),
-                    htmlOutput("us_deaths_summary")
+            f7Panel(title = "Scale", side = "left", theme = "light", effect = "cover",
+                    # HTML("<br/>"),
+                    selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "world")
+                    # HTML("<br/>"),
+                    # htmlOutput("us_cases_summary"),
+                    # HTML("<br/>"),
             ),
-            f7Panel(title = "Right Panel", side = "right", theme = "dark", effect = "cover",
+            f7Panel(title = "Plot options", side = "right", theme = "dark", effect = "cover",
                     sliderInput("ngroup","N states",min=1,max=20,value=10),
                     sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=as.numeric(Sys.Date() - as.Date("2020-03-01"))),
                     radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
@@ -36,7 +35,7 @@ f7Page(
             )
         ),
         navbar = f7Navbar(
-            title = "COVID 19",
+            title = textOutput("maintab_title"),
             hairline = TRUE,
             shadow = TRUE,
             left_panel = TRUE,
@@ -46,7 +45,7 @@ f7Page(
             animated = TRUE,
             #swipeable = TRUE,
             f7Tab(
-                tabName = "Table",
+                tabName = "Overview",
                 icon = f7Icon("list_number"),
                 active = TRUE,
 
@@ -104,14 +103,18 @@ f7Page(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
-                        title = "Data from yesterday",
+                        title = textOutput("tableheader"),
                         # sliderTextInput(
                         #     inputId = "by",
                         #     label = "Date Selector:",
                         #     choices = c("day", "week", "month"),
                         #     selected = "day"
                         # ),
+                        htmlOutput("us_cases_summary"),
                         br(),
+                        htmlOutput("us_deaths_summary"),
+                        br(),
+                        # h5(shiny::textOutput("tableheader")),
                         DT::DTOutput("table")
                         # footer = tagList(
                         #     f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
@@ -128,7 +131,7 @@ f7Page(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
-                        title = "Card header",
+                        title = "Total cases",
                         # prettySwitch(
                         #     inputId = "show",
                         #     label = "Show Plot",
@@ -152,7 +155,7 @@ f7Page(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
-                        title = "Card header",
+                        title = "Timeseries (filtered by map)",
                         # prettyCheckboxGroup(
                         #     "variable",
                         #     "Variables to show:",
@@ -163,7 +166,7 @@ f7Page(
                         #     status = "danger",
                         #     animation = "pulse"
                         # ),
-                        plotly::plotlyOutput("plot")
+                        plotly::plotlyOutput("plot",height = "100%")
                         # tableOutput("data"),
                         # footer = tagList(
                         #     f7Button(color = "blue", label = "My button", src = "https://www.google.com"),

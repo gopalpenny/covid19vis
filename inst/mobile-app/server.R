@@ -335,15 +335,15 @@ shinyServer(function(input, output, session) {
             }
 
             avg_7_note <- ifelse("7-day avg" %in% input$plotoptions,", 7-day avg","")
-            x_list <- list(title = x_axis_label)
-            y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,avg_7_note,")"))
+            x_list <- list(title = x_axis_label, linecolor = "#AAAAAA",tickcolor = "#AAAAAA")
+            y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,avg_7_note,")"),
+                           linecolor = "#AAAAAA",tickcolor = "#AAAAAA")
             if ("log(y)" %in% input$plotoptions) {
                 y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
             }
             plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
-                plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom")) #%>%
-                # layout(plot_bgcolor='rgb(254, 247, 234)') %>%
-                # layout(paper_bgcolor='rgb(254, 247, 234)')
+                plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"),
+                               plot_bgcolor='black',paper_bgcolor="black",font=list(color="#FFFFFF"))
 
             ###
 
@@ -379,14 +379,15 @@ shinyServer(function(input, output, session) {
 
     output$tableheader <- renderText({
         covid_tot <- covid_totals()
-        last_update <- covid_tot$last_date %>% max() %>% strftime("%b %d, %Y")
+        last_update <- covid_tot$last_date %>% max() %>% strftime("%B %d, %Y")
         if (input$maintab=="us") {
             # data_source <- "the NY Times"
             data_source <- "JHU CSSE"
         } else if (input$maintab=="world") {
             data_source <- "JHU CSSE"
         }
-        tableheader <- paste0("Latest data from ",data_source," (",last_update,")")
+        # tableheader <- paste0("Latest data from ",data_source," (",last_update,")")
+        tableheader <- paste0(last_update," (",data_source,")")
         tableheader
     })
 
