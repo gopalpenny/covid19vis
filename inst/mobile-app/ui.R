@@ -8,7 +8,7 @@
 #
 library(shiny)
 library(shinyMobile)
-library(echarts4r)
+# library(echarts4r)
 library(shinyWidgets)
 
 # Define UI for application that draws a histogram

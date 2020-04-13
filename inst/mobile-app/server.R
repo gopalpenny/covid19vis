@@ -9,7 +9,7 @@
 
 library(shiny)
 library(shinyMobile)
-library(echarts4r)
+# library(echarts4r)
 library(shinyWidgets)
 # library(leaflet)
 library(covid19vis)
@@ -205,7 +205,7 @@ shinyServer(function(input, output, session) {
             # leafem::addMouseCoordinates() %>%
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
-            leaflet::setView(lng = 5, lat = 0, zoom=1)
+            leaflet::setView(lng = 0, lat = 0, zoom=1)
     })
 
     output$table <- DT::renderDT({
