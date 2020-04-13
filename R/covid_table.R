@@ -90,7 +90,7 @@ prep_covid_DT_mobile <- function(covid_totals) {
                 options = list(searching=FALSE,
                                # formatNumber= formatNumber(),
                                lengthChange=FALSE,
-                               pageLength = 10,
+                               pageLength = 8,
                                language.thousands=",",
                                pagingType="simple",
                                class="compact cell-border",
