@@ -18,6 +18,7 @@ f7Page(
     f7TabLayout(
         panels = tagList(
             f7Panel(title = "Left Panel", side = "left", theme = "light", effect = "cover",
+                    selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "world"),
                     sliderInput("ngroup","N states",min=1,max=20,value=10),
                     sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=as.numeric(Sys.Date() - as.Date("2020-03-01"))),
                     radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
@@ -106,15 +107,7 @@ f7Page(
                         #     selected = "day"
                         # ),
                         br(),
-                        # DT::DTOutput("table"),
-                        # echarts4rOutput("river"),
-                        sliderInput("ngroup","N states",min=1,max=20,value=10),
-                        sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=as.numeric(Sys.Date() - as.Date("2020-03-01"))),
-                        radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
-                        radioButtons("yaxis_type","Y axis type",c("Total","New","% change"),selected="Total",inline=TRUE),
-                        checkboxGroupInput("plotoptions",NULL,c("log(y)","7-day avg"),selected="log(y)",inline=TRUE),
-                        radioButtons("xaxis","X axis",c("Last 30 days","Days since Nth"),inline=TRUE),
-                        radioButtons("rankname","Rank by",c("Cases (Total)","Deaths (Total)","Cases (New)","Deaths (New)"),inline=TRUE)
+                        DT::DTOutput("table")
                         # footer = tagList(
                         #     f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
                         #     f7Badge("Badge", color = "green")
@@ -136,13 +129,13 @@ f7Page(
                             label = "Show Plot",
                             status = "danger"
                         ),
-                        # leaflet::leafletOutput("usmap",height=445),
+                        leaflet::leafletOutput("usmap",height=445)
 
-                        echarts4rOutput("network"),
-                        footer = tagList(
-                            f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
-                            f7Badge("Badge", color = "green")
-                        )
+                        # echarts4rOutput("network"),
+                        # footer = tagList(
+                        #     f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
+                        #     f7Badge("Badge", color = "green")
+                        # )
                     )
                 )
             ),
@@ -155,21 +148,22 @@ f7Page(
                     hover = TRUE,
                     f7Card(
                         title = "Card header",
-                        prettyCheckboxGroup(
-                            "variable",
-                            "Variables to show:",
-                            c("Cylinders" = "cyl",
-                              "Transmission" = "am",
-                              "Gears" = "gear"),
-                            inline = TRUE,
-                            status = "danger",
-                            animation = "pulse"
-                        ),
-                        tableOutput("data"),
-                        footer = tagList(
-                            f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
-                            f7Badge("Badge", color = "green")
-                        )
+                        # prettyCheckboxGroup(
+                        #     "variable",
+                        #     "Variables to show:",
+                        #     c("Cylinders" = "cyl",
+                        #       "Transmission" = "am",
+                        #       "Gears" = "gear"),
+                        #     inline = TRUE,
+                        #     status = "danger",
+                        #     animation = "pulse"
+                        # ),
+                        plotly::plotlyOutput("plot")
+                        # tableOutput("data"),
+                        # footer = tagList(
+                        #     f7Button(color = "blue", label = "My button", src = "https://www.google.com"),
+                        #     f7Badge("Badge", color = "green")
+                        # )
                     )
                 )
             )

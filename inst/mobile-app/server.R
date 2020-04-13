@@ -8,6 +8,23 @@
 #
 
 library(shiny)
+library(shinyMobile)
+library(echarts4r)
+library(shinyWidgets)
+# library(leaflet)
+library(covid19vis)
+library(dplyr)
+# library(magrittr)
+# library(ggplot2)
+# library(plotly)
+# library(readr)
+library(sf)
+
+dir <- "./"
+formnumber <- function(x, ...) {
+    gsub(" ","",format(x, ...))
+}
+
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -183,7 +200,7 @@ shinyServer(function(input, output, session) {
 
     output$usmap <- leaflet::renderLeaflet({
         leaflet::leaflet() %>%
-            leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>%
+            leaflet::addProviderTiles(leaflet::providers$Stamen.Toner) %>%
             # leafem::addMouseCoordinates() %>%
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
@@ -191,7 +208,15 @@ shinyServer(function(input, output, session) {
     })
 
     output$table <- DT::renderDT({
-        covid_DT <- prep_covid_DT(covid_totals())
+        # print(covid_totals())
+        # if (TRUE) {
+        #     foo <- "bar"
+        #     foo <- 2
+        # }
+        # abc <- data.frame(a=1:5,b=6:10)
+        # DT::datatable(abc)
+        covid_DT <- prep_covid_DT(covid_totals()) %>%
+            DT::formatStyle(1,backgroundColor = "black")
         covid_DT
     })
 
@@ -313,7 +338,9 @@ shinyServer(function(input, output, session) {
                 y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
             }
             plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
-                plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"))
+                plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom")) #%>%
+                # layout(plot_bgcolor='rgb(254, 247, 234)') %>%
+                # layout(paper_bgcolor='rgb(254, 247, 234)')
 
             ###
 
@@ -372,69 +399,5 @@ shinyServer(function(input, output, session) {
     ###########    ###########    ###########    ###########    ###########    ###########    ###########
 
     ###########    ###########    ###########    ###########    ###########    ###########    ###########
-
-    # river plot
-    dates <- reactive(seq.Date(Sys.Date() - 30, Sys.Date(), by = input$by))
-
-    output$river <- renderEcharts4r({
-        df <- data.frame(
-            dates = dates(),
-            apples = runif(length(dates())),
-            bananas = runif(length(dates())),
-            pears = runif(length(dates()))
-        )
-
-        df %>%
-            e_charts(dates) %>%
-            e_river(apples) %>%
-            e_river(bananas) %>%
-            e_river(pears) %>%
-            e_tooltip(trigger = "axis") %>%
-            e_title("River charts", "(Streamgraphs)") %>%
-            e_theme("dark")
-    })
-
-    # network
-    nodes <- reactive({
-        data.frame(
-            name = paste0(LETTERS, 1:300),
-            value = rnorm(300, 10, 2),
-            size = rnorm(300, 10, 2),
-            grp = rep(c("grp1", "grp2", "grp3"), 100),
-            stringsAsFactors = FALSE
-        )
-    })
-
-    edges <- reactive({
-        data.frame(
-            source = sample(nodes()$name, 400, replace = TRUE),
-            target = sample(nodes()$name, 400, replace = TRUE),
-            stringsAsFactors = FALSE
-        )
-    })
-
-    output$network <- renderEcharts4r({
-        req(input$show)
-        e_charts() %>%
-            e_graph_gl() %>%
-            e_graph_nodes(nodes(), name, value, size, grp) %>%
-            e_graph_edges(edges(), source, target) %>%
-            e_theme("dark")
-    })
-
-
-    # datatable
-    output$data <- renderTable({
-        mtcars[, c("mpg", input$variable), drop = FALSE]
-    }, rownames = TRUE)
-
-
-    # send the theme to javascript
-    observe({
-        session$sendCustomMessage(
-            type = "ui-tweak",
-            message = list(os = input$theme, skin = input$color)
-        )
-    })
 
 })
