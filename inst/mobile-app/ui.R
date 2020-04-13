@@ -18,7 +18,14 @@ f7Page(
     f7TabLayout(
         panels = tagList(
             f7Panel(title = "Left Panel", side = "left", theme = "light", effect = "cover",
+                    HTML("<br/>"),
                     selectInput('maintab',NULL,c("World"="world","United States"="us"),selected = "world"),
+                    HTML("<br/>"),
+                    htmlOutput("us_cases_summary"),
+                    HTML("<br/>"),
+                    htmlOutput("us_deaths_summary")
+            ),
+            f7Panel(title = "Right Panel", side = "right", theme = "dark", effect = "cover",
                     sliderInput("ngroup","N states",min=1,max=20,value=10),
                     sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=as.numeric(Sys.Date() - as.Date("2020-03-01"))),
                     radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
@@ -26,9 +33,7 @@ f7Page(
                     checkboxGroupInput("plotoptions",NULL,c("log(y)","7-day avg"),selected="log(y)",inline=TRUE),
                     radioButtons("xaxis","X axis",c("Last 30 days","Days since Nth"),inline=TRUE),
                     radioButtons("rankname","Rank by",c("Cases (Total)","Deaths (Total)","Cases (New)","Deaths (New)"),inline=TRUE)
-
-                    ),
-            f7Panel(title = "Right Panel", side = "right", theme = "dark", "Blabla", effect = "cover")
+            )
         ),
         navbar = f7Navbar(
             title = "COVID 19",
@@ -42,7 +47,7 @@ f7Page(
             #swipeable = TRUE,
             f7Tab(
                 tabName = "Table",
-                icon = f7Icon("map"),
+                icon = f7Icon("list_number"),
                 active = TRUE,
 
                 # f7Flex(
@@ -116,19 +121,19 @@ f7Page(
                 )
             ),
             f7Tab(
-                tabName = "Tab 2",
-                icon = f7Icon("today"),
+                tabName = "Map",
+                icon = f7Icon("compass"),
                 active = FALSE,
                 f7Shadow(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
                         title = "Card header",
-                        prettySwitch(
-                            inputId = "show",
-                            label = "Show Plot",
-                            status = "danger"
-                        ),
+                        # prettySwitch(
+                        #     inputId = "show",
+                        #     label = "Show Plot",
+                        #     status = "danger"
+                        # ),
                         leaflet::leafletOutput("usmap",height=445)
 
                         # echarts4rOutput("network"),
@@ -140,8 +145,8 @@ f7Page(
                 )
             ),
             f7Tab(
-                tabName = "Tab 3",
-                icon = f7Icon("cloud_upload"),
+                tabName = "Plot",
+                icon = f7Icon("graph_square"),
                 active = FALSE,
                 f7Shadow(
                     intensity = 10,

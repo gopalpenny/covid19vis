@@ -137,7 +137,8 @@ shinyServer(function(input, output, session) {
         text <- with(covid_summary(),
                      paste0("<strong>Total cases</strong><br/>",format(cases,big.mark = ",")," (+",
                             format(cases_daily,big.mark = ","),", ",format(cases_pct_change,big.mark = ",",digits = 3),"%)"))
-        HTML(text)
+        # HTML(text)
+        text
     })
 
     output$us_deaths_summary <- renderText({
@@ -200,7 +201,7 @@ shinyServer(function(input, output, session) {
 
     output$usmap <- leaflet::renderLeaflet({
         leaflet::leaflet() %>%
-            leaflet::addProviderTiles(leaflet::providers$Stamen.Toner) %>%
+            leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>%
             # leafem::addMouseCoordinates() %>%
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
@@ -215,8 +216,10 @@ shinyServer(function(input, output, session) {
         # }
         # abc <- data.frame(a=1:5,b=6:10)
         # DT::datatable(abc)
-        covid_DT <- prep_covid_DT(covid_totals()) %>%
-            DT::formatStyle(1,backgroundColor = "black")
+        covid_DT <- prep_covid_DT_mobile(covid_totals()) %>%
+            DT::formatStyle(1,backgroundColor = "#222222") %>%
+            DT::formatStyle(2:5,color = "#222222") %>%
+            DT::formatStyle(0:4,border='0.5px solid #111')
         covid_DT
     })
 
