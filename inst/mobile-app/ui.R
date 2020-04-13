@@ -25,7 +25,7 @@ f7Page(
                     # HTML("<br/>"),
             ),
             f7Panel(title = "Plot options", side = "right", theme = "dark", effect = "cover",
-                    sliderInput("ngroup","N states",min=1,max=20,value=10),
+                    sliderInput("ngroup","N states",min=1,max=20,value=8),
                     sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=as.numeric(Sys.Date() - as.Date("2020-03-01"))),
                     radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
                     radioButtons("yaxis_type","Y axis type",c("Total","New","% change"),selected="Total",inline=TRUE),
