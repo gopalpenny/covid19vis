@@ -179,6 +179,10 @@ shinyServer(function(input, output, session) {
         pal <- mappal()
         map_bounds <- mapbounds()
 
+        ###### THIS IS WHERE I WILL CHANGE FROM TOTALS TO 7-DAY CHANGE:
+        # Need to change map fill variable
+        # Need to update palettes and legend
+        # Add option for switching between the two
         leaflet::leafletProxy("usmap") %>%
             leaflet::clearGroup("poly") %>% leaflet::clearControls()  %>%
             leaflet::addPolygons(data=map_data(),stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
@@ -251,24 +255,24 @@ shinyServer(function(input, output, session) {
             y_axis_name <- case_when(
                 input$yaxis_val == "Cases"  & input$yaxis_type == "New" ~ "cases_daily",
                 input$yaxis_val == "Cases"  & input$yaxis_type == "Total"  ~ "cases",
-                input$yaxis_val == "Cases"  & input$yaxis_type == "% change" ~ "cases_pct_change",
+                input$yaxis_val == "Cases"  & input$yaxis_type == "7-day % change" ~ "cases_7day_change",
                 input$yaxis_val == "Deaths" & input$yaxis_type == "New"  ~ "deaths_daily",
                 input$yaxis_val == "Deaths" & input$yaxis_type == "Total"  ~ "deaths",
-                input$yaxis_val == "Deaths" & input$yaxis_type == "% change" ~ "deaths_pct_change"
+                input$yaxis_val == "Deaths" & input$yaxis_type == "7-day % change" ~ "deaths_7day_change"
             )
             rank_name <- case_when(
                 input$rankname == "Cases (Total)" ~ "rank_cases_name",
                 input$rankname == "Deaths (Total)" ~ "rank_deaths_name",
-                input$rankname == "Cases (New)" ~ "rank_cases_daily_name",
-                input$rankname == "Deaths (New)" ~ "rank_deaths_daily_name"
+                input$rankname == "Cases (Change)" ~ "rank_cases_7day_name",
+                input$rankname == "Deaths (Change)" ~ "rank_deaths_7day_name"
             )
             x_axis_name <- case_when(
-                input$xaxis == "Last 30 days" ~ "date",
+                input$xaxis == "Last N days" ~ "date",
                 input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "cases100days",
                 input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "deaths25days"
             )
             x_axis_label <- case_when(
-                input$xaxis == "Last 30 days" ~ paste("Last",input$ndays,"days"),
+                input$xaxis == "Last N days" ~ paste("Last",input$ndays,"days"),
                 input$xaxis == "Days since Nth" & input$yaxis_val == "Cases" ~ "Days since 100th case",
                 input$xaxis == "Days since Nth" & input$yaxis_val == "Deaths" ~ "Days since 25th death"
             )

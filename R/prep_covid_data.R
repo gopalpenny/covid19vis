@@ -9,12 +9,26 @@ prep_covid_data <- function(covid_data_prep) {
     na.omit() %>%
     dplyr::group_by(name) %>% dplyr::arrange(name,date) %>%
     dplyr::mutate(cases_daily=cases-dplyr::lag(cases),
-           deaths_daily=deaths-dplyr::lag(deaths),
-           cases_pct_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily)*100,0),
-           deaths_pct_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily)*100,0),
-           cum_cases_100_lgl=cases>=100,
-           cum_deaths_25_lgl=deaths>=25,
-           days30=dplyr::if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
+                  deaths_daily=deaths-dplyr::lag(deaths),
+                  cases_pct_change=ifelse(cases>cases_daily,cases_daily/(cases-cases_daily)*100,0),
+                  deaths_pct_change=ifelse(deaths>deaths_daily,deaths_daily/(deaths-deaths_daily)*100,0),
+                  cum_cases_100_lgl=cases>=100,
+                  cum_deaths_25_lgl=deaths>=25,
+                  cases_7day_change=case_when(
+                    lag(cases,7) < 25 ~ as.numeric(NA),
+                    cases > 0 & lag(cases,7) > 0 ~ (cases - lag(cases,7))/lag(cases,7) * 100,
+                    cases > 0 & lag(cases,7) == 0 ~ 100,
+                    cases == 0 & lag(cases,7) == 0 ~ 0,
+                    TRUE ~ as.numeric(NA)
+                  ),
+                  deaths_7day_change=case_when(
+                    lag(deaths,7) < 25 ~ as.numeric(NA),
+                    deaths > 0 & lag(deaths,7) > 0 ~ (deaths - lag(deaths,7))/lag(deaths,7) * 100,
+                    deaths > 0 & lag(deaths,7) == 0 ~ 100,
+                    deaths == 0 & lag(deaths,7) == 0 ~ 0,
+                    TRUE ~ as.numeric(NA)
+                  ),
+                  days30=dplyr::if_else(as.numeric(Sys.Date()-date)<=30,date,as.Date(NA))) %>%
     dplyr::group_by(name,cum_cases_100_lgl) %>%
     dplyr::mutate(cases100days=ifelse(cum_cases_100_lgl,dplyr::row_number()-1,NA)) %>%
     dplyr::group_by(name,cum_deaths_25_lgl) %>%
@@ -102,6 +116,8 @@ prep_covid_totals <- function(covid_data) {
                      deaths_daily=dplyr::last(deaths_daily),
                      cases_pct_change=dplyr::last(cases_pct_change),
                      deaths_pct_change=dplyr::last(deaths_pct_change),
+                     cases_7day_change=dplyr::last(cases_7day_change),
+                     deaths_7day_change=dplyr::last(deaths_7day_change),
                      last_date=dplyr::last(date)) %>%
     dplyr::mutate(summary=paste0(abbrev," +",format(cases_daily,big.mark = ",")," (+",round(cases_pct_change),"%)")) %>%
     dplyr::group_by() %>%
@@ -120,6 +136,14 @@ prep_covid_totals <- function(covid_data) {
     # change in deaths
     dplyr::arrange(desc(deaths_daily)) %>%
     dplyr::mutate(rank_deaths_daily=dplyr::row_number(),
-                  rank_deaths_daily_name=factor(paste0(rank_deaths_daily,". ",abbrev),levels=paste0(rank_deaths_daily,". ",abbrev)))
+                  rank_deaths_daily_name=factor(paste0(rank_deaths_daily,". ",abbrev),levels=paste0(rank_deaths_daily,". ",abbrev))) %>%
+    # change in cases
+    dplyr::arrange(desc(cases_7day_change)) %>%
+    dplyr::mutate(rank_cases_7day_change=dplyr::row_number(),
+                  rank_cases_7day_name=factor(paste0(rank_cases_7day_change,". ",abbrev),levels=paste0(rank_cases_7day_change,". ",abbrev))) %>%
+    # change in deaths
+    dplyr::arrange(desc(deaths_7day_change)) %>%
+    dplyr::mutate(rank_deaths_7day_change=dplyr::row_number(),
+                  rank_deaths_7day_name=factor(paste0(rank_deaths_7day_change,". ",abbrev),levels=paste0(rank_deaths_7day_change,". ",abbrev)))
   return(covid_totals)
 }
