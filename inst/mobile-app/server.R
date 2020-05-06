@@ -71,13 +71,14 @@ shinyServer(function(input, output, session) {
     worldpal <- leaflet::colorBin("YlOrRd", domain = c(10^wmin,10^wmax), bins = worldbins)
 
     ## additional data
+    bin_width_max_pct <- 5
     usbins_c <- unique(c(0,
-                  floor(quantile(covid_totals_us$cases_7day_change,seq(0.2,0.8,by=0.2))/10)*10,
-                  ceiling(max(covid_totals_us$cases_7day_change,na.rm=TRUE)/10)*10))
+                  floor(quantile(covid_totals_us$cases_7day_change,seq(0.2,0.8,by=0.2))/bin_width_max_pct)*bin_width_max_pct,
+                  ceiling(max(covid_totals_us$cases_7day_change,na.rm=TRUE)/bin_width_max_pct)*bin_width_max_pct))
     uspal_change <- leaflet::colorBin("YlOrRd", domain = c(min(usbins_c),max(usbins_c)), bins = usbins_c)
     worldbins_c <- unique(c(0,
-                         floor(quantile(covid_totals_world$cases_7day_change,seq(0.2,0.8,by=0.2),na.rm=TRUE)/10)*10,
-                         ceiling(max(covid_totals_world$cases_7day_change,na.rm=TRUE,na.rm=TRUE)/10)*10))
+                         floor(quantile(covid_totals_world$cases_7day_change,seq(0.2,0.8,by=0.2),na.rm=TRUE)/bin_width_max_pct)*bin_width_max_pct,
+                         ceiling(max(covid_totals_world$cases_7day_change,na.rm=TRUE,na.rm=TRUE)/bin_width_max_pct)*bin_width_max_pct))
     worldpal_change <- leaflet::colorBin("YlOrRd", domain = c(min(worldbins_c),max(worldbins_c)), bins = worldbins_c)
 
     # Reactive data objects -- change depending on maintab
@@ -200,16 +201,22 @@ shinyServer(function(input, output, session) {
         pal_change <- mappal_change()
         map_bounds <- mapbounds()
 
-        ###### THIS IS WHERE I WILL CHANGE FROM TOTALS TO 7-DAY CHANGE:
-        # Need to change map fill variable
-        # Need to update palettes and legend
-        # Add option for switching between the two
+        if (input$maintab=="world") {
+            total_group <- "Total cases global"
+            increase_7day_group <- "7-day increase global"
+        } else if (input$maintab=="us") {
+            total_group <- "Total cases US"
+            increase_7day_group <- "7-day increase US"
+        }
         leaflet::leafletProxy("usmap") %>%
-            leaflet::clearGroup("cases") %>%
-            leaflet::clearGroup("7day_increase") %>%
+            leaflet::removeLayersControl() %>%
             leaflet::clearControls()  %>%
+            leaflet::clearGroup("Total cases global") %>%
+            leaflet::clearGroup("7-day increase global") %>%
+            leaflet::clearGroup("Total cases US") %>%
+            leaflet::clearGroup("7-day increase US") %>%
             leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
-                                 fillColor = ~pal(cases),color=~pal(cases),group="cases",
+                                 fillColor = ~pal(cases),color=~pal(cases),group=total_group,
                                  # highlightOptions = highlightOptions(
                                  #   weight = 5,
                                  #   color = "#666",
@@ -218,16 +225,16 @@ shinyServer(function(input, output, session) {
                                  #   bringToFront = TRUE),
                                  label=map_labels()) %>%
             leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
-                                 fillColor = ~pal_change(cases_7day_change),color=~pal_change(cases_7day_change),group="7day_increase",
+                                 fillColor = ~pal_change(cases_7day_change),color=~pal_change(cases_7day_change),group=increase_7day_group,
                                  label=map_labels()) %>%
             # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
             #                  options = layersControlOptions(collapsed = FALSE)) %>%
             # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
             leaflet::addLegend(position = "bottomleft",pal=pal_change,data=map_data_df %>% filter(!is.na(cases_7day_change)),
-                               values = ~cases_7day_change,title="7-day increase (%)", group="7day_increase") %>%
-            leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data_df,values = ~cases, title="Total cases",group="cases") %>%
+                               values = ~cases_7day_change,title="7-day increase (%)", group=increase_7day_group) %>%
+            leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data_df,values = ~cases, title=total_group,group=total_group) %>%
             leaflet::fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north) %>%
-            leaflet::addLayersControl(overlayGroups = c("cases","7day_increase"))
+            leaflet::addLayersControl(overlayGroups = c(total_group,increase_7day_group)) %>% leaflet::hideGroup(total_group)
 
     })
 
@@ -238,7 +245,8 @@ shinyServer(function(input, output, session) {
             # leafem::addMouseCoordinates() %>%
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
-            leaflet::setView(lng = 0, lat = 0, zoom=1)
+            leaflet::setView(lng = 0, lat = 0, zoom=1) %>%
+            leaflet::addLayersControl(overlayGroups = c("Total cases global","7-day increase global"))
     })
 
     output$table <- DT::renderDT({
