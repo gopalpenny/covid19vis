@@ -201,40 +201,33 @@ shinyServer(function(input, output, session) {
         pal_change <- mappal_change()
         map_bounds <- mapbounds()
 
-        if (input$maintab=="world") {
-            total_group <- "Total cases global"
-            increase_7day_group <- "7-day increase global"
-        } else if (input$maintab=="us") {
-            total_group <- "Total cases US"
-            increase_7day_group <- "7-day increase US"
-        }
+        # if (input$maintab=="world") {
+        #     total_group <- "Total cases global"
+        #     increase_7day_group <- "7-day increase global"
+        # } else if (input$maintab=="us") {
+        total_group <- "Total cases"
+        increase_7day_group <- "7-day increase"
+        # }
         leaflet::leafletProxy("usmap") %>%
-            leaflet::removeLayersControl() %>%
-            leaflet::clearControls()  %>%
-            leaflet::clearGroup("Total cases global") %>%
-            leaflet::clearGroup("7-day increase global") %>%
-            leaflet::clearGroup("Total cases US") %>%
-            leaflet::clearGroup("7-day increase US") %>%
+            leaflet::clearControls() %>%
+            # leaflet::removeLayersControl() %>%
+            leaflet::clearGroup("Total cases") %>%
+            leaflet::clearGroup("7-day increase") %>%
+            # leaflet::clearGroup("Total cases US") %>%
+            # leaflet::clearGroup("7-day increase US") %>%
             leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
                                  fillColor = ~pal(cases),color=~pal(cases),group=total_group,
-                                 # highlightOptions = highlightOptions(
-                                 #   weight = 5,
-                                 #   color = "#666",
-                                 #   dashArray = "",
-                                 #   fillOpacity = 0.7,
-                                 #   bringToFront = TRUE),
+                                 # highlightOptions = highlightOptions(weight = 5,color = "#666",dashArray = "",fillOpacity = 0.7, bringToFront = TRUE),
                                  label=map_labels()) %>%
             leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
                                  fillColor = ~pal_change(cases_7day_change),color=~pal_change(cases_7day_change),group=increase_7day_group,
                                  label=map_labels()) %>%
-            # addLayersControl(baseGroups = c("Map"),#overlayGroups = c("Red","Blue") ,
-            #                  options = layersControlOptions(collapsed = FALSE)) %>%
-            # leaflet::addCircles(~lon,~lat,~log(cases)*1e4,data=covid_totals,stroke=FALSE) %>%
             leaflet::addLegend(position = "bottomleft",pal=pal_change,data=map_data_df %>% filter(!is.na(cases_7day_change)),
                                values = ~cases_7day_change,title="7-day increase (%)", group=increase_7day_group) %>%
             leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data_df,values = ~cases, title=total_group,group=total_group) %>%
             leaflet::fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north) %>%
-            leaflet::addLayersControl(overlayGroups = c(total_group,increase_7day_group)) %>% leaflet::hideGroup(total_group)
+            leaflet::hideGroup(total_group) #%>%
+            # leaflet::addLayersControl(overlayGroups = c(total_group,increase_7day_group))
 
     })
 
@@ -246,7 +239,7 @@ shinyServer(function(input, output, session) {
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
             leaflet::setView(lng = 0, lat = 0, zoom=1) %>%
-            leaflet::addLayersControl(overlayGroups = c("Total cases global","7-day increase global"))
+            leaflet::addLayersControl(overlayGroups = c("Total cases","7-day increase"))
     })
 
     output$table <- DT::renderDT({
