@@ -13,7 +13,7 @@ library(shinyWidgets)
 
 # Define UI for application that draws a histogram
 f7Page(
-    title = "My app",
+    title = "COVID-19 app",
     init = f7Init(theme = "dark"),
     f7TabLayout(
         panels = tagList(
