@@ -291,10 +291,10 @@ shinyServer(function(input, output, session) {
                 input$yaxis_val == "Deaths" & input$yaxis_type == "7-day % change" ~ "deaths_7day_change"
             )
             rank_name <- case_when(
-                input$rankname == "Cases (Total)" ~ "rank_cases_name",
-                input$rankname == "Deaths (Total)" ~ "rank_deaths_name",
-                input$rankname == "Cases (Increase %)" ~ "rank_cases_7day_name",
-                input$rankname == "Deaths (Increase %)" ~ "rank_deaths_7day_name"
+                input$rankname == "Total" & input$yaxis_val == "Cases"~ "rank_cases_name",
+                input$rankname == "Total" & input$yaxis_val == "Deaths" ~ "rank_deaths_name",
+                input$rankname == "Increase %" & input$yaxis_val == "Cases" ~ "rank_cases_7day_name",
+                input$rankname == "Increase %" & input$yaxis_val == "Deaths" ~ "rank_deaths_7day_name"
             )
             x_axis_name <- case_when(
                 input$xaxis == "Last N days" ~ "date",

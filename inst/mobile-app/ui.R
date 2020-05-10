@@ -31,8 +31,8 @@ f7Page(
                     radioButtons("yaxis_type","Y axis type",c("Total","New","7-day % change"),selected="Total",inline=TRUE),
                     checkboxGroupInput("plotoptions",NULL,c("log(y)","7-day avg"),selected="log(y)",inline=TRUE),
                     radioButtons("xaxis","X axis",c("Last N days","Days since Nth"),inline=TRUE),
-                    radioButtons("rankname","Rank by",c("Cases (Total)","Deaths (Total)","Cases (Increase %)","Deaths (Increase %)"),
-                                 selected = "Cases (Increase %)",inline=TRUE)
+                    radioButtons("rankname","Rank by",c("Total","Increase %"),
+                                 selected = "Increase %",inline=TRUE)
             )
         ),
         navbar = f7Navbar(
