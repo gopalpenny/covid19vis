@@ -215,18 +215,18 @@ shinyServer(function(input, output, session) {
             leaflet::clearGroup("7-day increase") %>%
             # leaflet::clearGroup("Total cases US") %>%
             # leaflet::clearGroup("7-day increase US") %>%
-            leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
-                                 fillColor = ~pal(cases),color=~pal(cases),group=total_group,
-                                 # highlightOptions = highlightOptions(weight = 5,color = "#666",dashArray = "",fillOpacity = 0.7, bringToFront = TRUE),
-                                 label=map_labels()) %>%
+            # leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
+            #                      fillColor = ~pal(cases),color=~pal(cases),group=total_group,
+            #                      # highlightOptions = highlightOptions(weight = 5,color = "#666",dashArray = "",fillOpacity = 0.7, bringToFront = TRUE),
+            #                      label=map_labels()) %>%
             leaflet::addPolygons(data=map_data_df,stroke=TRUE,weight=2,opacity=0.3,fillOpacity = 0.3,
                                  fillColor = ~pal_change(cases_7day_change),color=~pal_change(cases_7day_change),group=increase_7day_group,
                                  label=map_labels()) %>%
             leaflet::addLegend(position = "bottomleft",pal=pal_change,data=map_data_df %>% filter(!is.na(cases_7day_change)),
                                values = ~cases_7day_change,title="7-day increase (%)", group=increase_7day_group) %>%
-            leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data_df,values = ~cases, title=total_group,group=total_group) %>%
-            leaflet::fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north) %>%
-            leaflet::hideGroup(total_group) #%>%
+            # leaflet::addLegend(position = "bottomleft",pal=pal,data=map_data_df,values = ~cases, title=total_group,group=total_group) %>%
+            leaflet::fitBounds(lng1 = map_bounds$west , lng2 = map_bounds$east, lat1 = map_bounds$south , lat2=map_bounds$north)# %>%
+            # leaflet::hideGroup(total_group) %>%
             # leaflet::addLayersControl(overlayGroups = c(total_group,increase_7day_group))
 
     })
@@ -238,8 +238,8 @@ shinyServer(function(input, output, session) {
             # leafem::addMouseCoordinates() %>%
             # addProviderTiles("Esri.WorldImagery", group="Satellite") %>%
             leaflet::addScaleBar(position = c("bottomright"), options = leaflet::scaleBarOptions())%>%
-            leaflet::setView(lng = 0, lat = 0, zoom=1) %>%
-            leaflet::addLayersControl(overlayGroups = c("Total cases","7-day increase"))
+            leaflet::setView(lng = 0, lat = 0, zoom=1) #%>%
+            # leaflet::addLayersControl(overlayGroups = c("7-day increase"))
     })
 
     output$table <- DT::renderDT({
@@ -293,8 +293,8 @@ shinyServer(function(input, output, session) {
             rank_name <- case_when(
                 input$rankname == "Cases (Total)" ~ "rank_cases_name",
                 input$rankname == "Deaths (Total)" ~ "rank_deaths_name",
-                input$rankname == "Cases (Change)" ~ "rank_cases_7day_name",
-                input$rankname == "Deaths (Change)" ~ "rank_deaths_7day_name"
+                input$rankname == "Cases (Increase %)" ~ "rank_cases_7day_name",
+                input$rankname == "Deaths (Increase %)" ~ "rank_deaths_7day_name"
             )
             x_axis_name <- case_when(
                 input$xaxis == "Last N days" ~ "date",
@@ -369,6 +369,7 @@ shinyServer(function(input, output, session) {
             }
 
             avg_7_note <- ifelse("7-day avg" %in% input$plotoptions,", 7-day avg","")
+            plot_title <- paste0(input$yaxis_val," (",input$yaxis_type,"), ranked by ", input$rankname,"\n")
             x_list <- list(title = x_axis_label, linecolor = "#AAAAAA",tickcolor = "#AAAAAA")
             y_list <- list(title = paste0(input$yaxis_val," (",input$yaxis_type,avg_7_note,")"),
                            linecolor = "#AAAAAA",tickcolor = "#AAAAAA")
@@ -376,7 +377,7 @@ shinyServer(function(input, output, session) {
                 y_list <- list(title = paste0(input$yaxis_val," (log ",input$yaxis_type,avg_7_note,")"),type="log")
             }
             plot1 <- plot1 %>% plotly::layout(yaxis = y_list, xaxis = x_list) %>%
-                plotly::layout(legend = list(orientation = 'h',y = 1,yanchor="bottom"),
+                plotly::layout(margin=list(t=100),legend = list(orientation = 'h',y = 1,yanchor="bottom"),
                                plot_bgcolor='black',paper_bgcolor="black",font=list(color="#FFFFFF"))
 
             ###
