@@ -427,6 +427,11 @@ shinyServer(function(input, output, session) {
     })
 
 
+    output$plotcard_header <- renderText({
+        paste0(input$yaxis_type, " ", input$yaxis_val, ", ranked by ", input$rankname)
+    })
+
+
     ###########    ###########    ###########    ###########    ###########    ###########    ###########
 
     ###########    ###########    ###########    ###########    ###########    ###########    ###########

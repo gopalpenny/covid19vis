@@ -132,7 +132,7 @@ f7Page(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
-                        title = "Total cases",
+                        title = "Cases: 7-day increase",
                         # prettySwitch(
                         #     inputId = "show",
                         #     label = "Show Plot",
@@ -156,7 +156,7 @@ f7Page(
                     intensity = 10,
                     hover = TRUE,
                     f7Card(
-                        title = "Timeseries (filtered by map)",
+                        title = textOutput("plotcard_header"),
                         # prettyCheckboxGroup(
                         #     "variable",
                         #     "Variables to show:",
