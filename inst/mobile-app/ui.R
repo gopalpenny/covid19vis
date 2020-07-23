@@ -28,11 +28,11 @@ f7Page(
                     sliderInput("ngroup","N states",min=1,max=20,value=8),
                     sliderInput("ndays","N days",min=10,max=as.numeric(Sys.Date() - as.Date("2020-02-01")),value=30), #as.numeric(Sys.Date() - as.Date("2020-03-01"))),
                     radioButtons("yaxis_val","Y axis value",c("Cases","Deaths"),selected="Cases",inline=TRUE),
-                    radioButtons("yaxis_type","Y axis type",c("Total","New","7-day % change"),selected="Total",inline=TRUE),
-                    checkboxGroupInput("plotoptions",NULL,c("log(y)","7-day avg"),selected="log(y)",inline=TRUE),
+                    radioButtons("yaxis_type","Y axis type",c("Total","New","7-day % change"),selected="New",inline=TRUE),
+                    checkboxGroupInput("plotoptions",NULL,c("log(y)","7-day avg"),selected=NULL,inline=TRUE),
                     radioButtons("xaxis","X axis",c("Last N days","Days since Nth"),inline=TRUE),
-                    radioButtons("rankname","Rank by",c("Total","Increase %"),
-                                 selected = "Increase %",inline=TRUE)
+                    radioButtons("rankname","Rank by",c("Total","New","Increase %"),
+                                 selected = "Total",inline=TRUE)
             )
         ),
         navbar = f7Navbar(

@@ -293,6 +293,8 @@ shinyServer(function(input, output, session) {
             rank_name <- case_when(
                 input$rankname == "Total" & input$yaxis_val == "Cases"~ "rank_cases_name",
                 input$rankname == "Total" & input$yaxis_val == "Deaths" ~ "rank_deaths_name",
+                input$rankname == "New" & input$yaxis_val == "Cases" ~ "rank_cases_daily_name",
+                input$rankname == "New" & input$yaxis_val == "Deaths" ~ "rank_deaths_daily_name",
                 input$rankname == "Increase %" & input$yaxis_val == "Cases" ~ "rank_cases_7day_name",
                 input$rankname == "Increase %" & input$yaxis_val == "Deaths" ~ "rank_deaths_7day_name"
             )
